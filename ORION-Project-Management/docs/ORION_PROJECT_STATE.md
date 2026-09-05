@@ -1,6 +1,6 @@
 # ORION — PROJECT STATE
 
-الإصدار: 1.8
+الإصدار: 1.9
 الحالة: ACTIVE
 المشروع: ORION
 
@@ -28,9 +28,15 @@ COMPLETED
 2. الخطوة الحالية
 ==================================================
 
-إكمال وربط Core Intelligence فوق العقود والحدود المثبتة في Phase 1، مع الحفاظ على المسار الحالي وعدم إعادة فتح العقود المستقرة دون سبب معماري مثبت.
+استكمال وربط Core Intelligence فوق العقود والحدود المثبتة، مع الحفاظ على المسار الحالي وعدم إعادة فتح العقود المستقرة دون سبب معماري مثبت.
 
-لا يوجد أمر حالي بالقفز إلى GUI أو Explosion Radar أو Trading Bot.
+بعد اكتمال الترحيل إلى المستودع الجديد، أصبحت استمرارية المشروع مرتبطة أيضًا بـ:
+
+ORION_CONTINUITY_AND_RESUME_LEDGER.md
+
+هذا السجل لا يستبدل PROJECT STATE؛ بل يربط الحالة الحالية بسجل الاختبارات والبوابات والـblockers ونقطة الاستئناف.
+
+لا يوجد أمر بالقفز إلى GUI أو Explosion Radar أو Trading Bot قبل استيفاء بوابات المشروع.
 
 ==================================================
 3. المسار التنفيذي المثبت
@@ -99,10 +105,10 @@ reports.report_exporter.ReportExporter
 أي مراجع تاريخية مثل engines.report_engine أو FullReport لا تعاد للمسار التنفيذي دون Architecture Review وDecision صريح.
 
 ==================================================
-6. Verification الأخير
+6. Verification الموثق
 ==================================================
 
-آخر Verification معتمد:
+آخر Verification المعلن تاريخيًا داخل هذا الملف قبل إنشاء Continuity Ledger:
 
 108 tests
 OK
@@ -112,7 +118,10 @@ VERIFICATION PASSED
 Python syntax compilation:
 PASSED
 
-تم تنظيف التحذيرات التقنية المستهدفة الخاصة بدورة asyncio وday-frequency في pandas-ta، ولم تعد تظهر في Verification المعتمد.
+تم تنظيف التحذيرات التقنية المستهدفة الخاصة بدورة asyncio وday-frequency في pandas-ta.
+
+ملاحظة:
+نتائج تحقق لاحقة محفوظة في Git/CI context يجب تتبعها عبر CONTINUITY & RESUME LEDGER والأدلة الأصلية، ولا تستبدل سجل 108 tests هنا دون تحديث مالك الحالة بقرار موثق.
 
 ==================================================
 7. Findings
@@ -126,28 +135,49 @@ AF-005 — VERIFIED / CLOSED
 AF-006 — DEFERRED TO PHASE 6
 AF-007 — VERIFIED / CLOSED
 
-لا يوجد Blocking Finding مفتوح يمنع Phase 2.
+لا يوجد Blocking Finding مفتوح مثبت داخل هذه الوثيقة يمنع Phase 2.
 
 المصدر التفصيلي:
 ORION_ARCHITECTURE_FINDINGS.md
 
 ==================================================
-8. التوثيق
+8. D2 / D6 / D7 الاستمرارية
 ==================================================
 
-تم توحيد ملكية الوثائق وإزالة الوثائق التشغيلية المكررة التي كانت تؤدي وظائف متداخلة.
+التفاصيل التاريخية للـCampaigns والـCI والـblockers ونقاط الاستئناف موجودة في:
 
-تم دمج المبادئ التنفيذية المفيدة في WORK PROTOCOL وARCHITECTURE وROADMAP.
+ORION_CONTINUITY_AND_RESUME_LEDGER.md
 
-الوثائق الملغاة كوثائق تشغيلية:
+الحالة المسجلة حاليًا:
 
-- ORION_EXECUTION_METHOD.md
-- ORION_TARGET_ARCHITECTURE_IMPLEMENTATION_BASELINE.md
+- Campaign A: QUALIFIED WITHIN FIXED-20 SCOPE
+- Broad-market qualification: NOT ESTABLISHED
+- D2 explosive-mover challenge: BLOCKED / NOT QUALIFIED
+- Campaign B: BLOCKED
+- Production approval: NOT APPROVED
 
-ولا تؤثر عملية تنظيف الوثائق على الكود أو على مسار المطور الحالي.
+ولا يجوز تجاوز هذا الوضع عبر تخفيف discovery/threshold standards أو الحقن اليدوي للمحركات الكبيرة.
 
 ==================================================
-9. المراحل القادمة
+9. الترحيل إلى المستودع الجديد
+==================================================
+
+المستودع الرسمي الحالي:
+
+badeemorse08-create/ORION_NEXT
+
+المستودع التاريخي الأصلي:
+
+badeemorse-gif/ORION_NEXT
+
+تم التحقق من نقل Git history و225 branch إلى المستودع الجديد.
+
+PR objects وReviews وGitHub Actions workflow history وJob Logs وArtifacts ليست جزءًا من Git history ولا تعتبر منقولة تلقائيًا.
+
+الـContinuity Ledger يحتفظ بسجل الاستمرارية لهذه الفجوة.
+
+==================================================
+10. المراحل القادمة
 ==================================================
 
 PHASE 2 — CORE INTELLIGENCE COMPLETION — CURRENT
@@ -163,12 +193,16 @@ Explosion Radar ميزة مستقلة لاحقة.
 Trading Bot يأتي بعد استقرار Core/Scalping والاختبارات والاعتماد المطلوب.
 
 ==================================================
-10. قاعدة هذا الملف
+11. قاعدة هذا الملف
 ==================================================
 
 هذا الملف يحتوي الحالة الحالية فقط.
 
-لا يعيد نسخ التاريخ الكامل أو خارطة المراحل الكاملة أو تفاصيل المعمارية.
+السجل الزمني التفصيلي للبوابات والاختبارات والـblockers ونقطة الاستئناف:
+
+ORION_CONTINUITY_AND_RESUME_LEDGER.md
+
+لا يتم نسخ التاريخ الكامل هنا.
 
 ==================================================
 END
