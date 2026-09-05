@@ -1,92 +1,101 @@
 # ORION — CONTINUITY & RESUME LEDGER
 
-**الإصدار:** 1.0-draft  
-**الحالة:** DRAFT — قبل تثبيت الوثيقة داخل المستودع الجديد  
-**المشروع:** ORION / ORION_NEXT  
-**تاريخ الإنشاء:** 2026-09-05  
+**الإصدار:** 1.1
+**الحالة:** ACTIVE / CANONICAL CONTINUITY RECORD
+**المشروع:** ORION / ORION_NEXT
+**تاريخ التحديث:** 2026-09-05
 
 ---
 
 ## 0. الغرض والسلطة
 
-هذه الوثيقة هي **سجل الاستمرارية والاستئناف** للمشروع.
-وظيفتها منع فقدان السياق بين جلسات التطوير، الحسابات/المستودعات، فترات التوقف، ونتائج CI.
+هذه الوثيقة هي **سجل الاستمرارية والاستئناف** لمشروع ORION.
 
-هي لا تستبدل وثائق ORION المالكة للحالة أو المعمارية أو القرارات أو الـRoadmap.
-بل تجمع **فهرسًا تشغيليًا قابلًا للتتبع** يجيب عن:
+وظيفتها حفظ الصورة التنفيذية القابلة للتتبع عبر الجلسات، الفروع، الحسابات، المستودعات، توقفات CI، ونتائج الاختبارات.
 
-- أين وصل المشروع؟
-- ما الذي تم إثباته فعليًا؟
-- ما الذي لم يتم إثباته؟
-- ما آخر حالة سليمة؟
-- ما الـcommit/branch المرجعي لكل بوابة؟
-- ما الـblocker الحالي؟
-- ما الذي يُمنع تغييره؟
-- من أين نستأنف؟
-- ما الخطوة التالية المسموح بها؟
+هي لا تستبدل وثائق ORION المالكة للمعلومات. الملكية تبقى كما يلي:
 
-**قاعدة:** لا تُحوّل نتيجة غير قابلة للإثبات إلى `PASS` أو `APPROVED`.
-الحالات المسموح بها تشمل: `PASS`, `VERIFIED`, `FAIL`, `ERROR`, `BLOCKED`, `CANCELLED`, `NOT RUN`, `NOT VERIFIED`, `PROPOSED`.
+- `ORION_GPT_EXECUTION_RULES.md` → قواعد تشغيل GPT.
+- `ORION_CONTROL_INDEX.md` → خريطة الوثائق وملكية المعلومات.
+- `ORION_PROJECT_STATE.md` → الحالة الحالية اللحظية.
+- `ORION_WORK_PROTOCOL.md` → طريقة التنفيذ.
+- `ORION_PROJECT_CHARTER.md` → تعريف المشروع ونطاقه.
+- `ORION_ARCHITECTURE.md` → المعمارية الحالية.
+- `ORION_ROADMAP.md` → ترتيب المراحل والانتقال.
+- `ORION_FUTURE_ROADMAP.md` → الأهداف المستقبلية.
+- `ORION_ARCHITECTURE_FINDINGS.md` → Findings.
+- `ORION_DECISIONS.md` → القرارات.
+- `ORION_CHANGELOG.md` → التاريخ التنفيذي المهم.
+- `ORION_KNOWN_PROBLEMS.md` → المشاكل المؤكدة.
 
----
+هذه الوثيقة تربط هذه المصادر وتحدد **من أين نستأنف** دون نسخ ملكيتها.
 
-## 1. مصادر السلطة الحالية
-
-المصدر الأعلى لقواعد تشغيل GPT هو `ORION_GPT_EXECUTION_RULES.md`.
-والـ`CONTROL_INDEX` يحدد ملكية الوثائق.
-أما `ORION_PROJECT_STATE.md` فهو المالك للحالة اللحظية، و`ORION_ROADMAP.md` لترتيب الانتقال، و`ORION_DECISIONS.md` للقرارات، و`ORION_CHANGELOG.md` للتاريخ التنفيذي، و`ORION_KNOWN_PROBLEMS.md` للمشاكل المؤكدة.
-
-هذه الوثيقة **ليست مالكًا بديلًا** لهذه المعلومات؛ هي سجل استمرارية يربطها ببعضها.
+**قاعدة الإثبات:** لا تتحول نتيجة غير قابلة للإثبات إلى `PASS` أو `APPROVED`.
+الحالات المستخدمة: `PASS`, `VERIFIED`, `FAIL`, `ERROR`, `BLOCKED`, `CANCELLED`, `NOT RUN`, `NOT VERIFIED`, `PROPOSED`.
 
 ---
 
-## 2. حالة المستودع والترحيل
+## 1. المستودع والحالة بعد الترحيل
 
 ### المستودع الأصلي
 
 `badeemorse-gif/ORION_NEXT`
 
-### المستودع الجديد المستهدف
+### المستودع الحالي المعتمد
 
 `badeemorse08-create/ORION_NEXT`
 
-### حالة الترحيل
+### Git migration
 
-`COMPLETED — GIT HISTORY / BRANCHES`
+الحالة: `VERIFIED — HISTORY / BRANCHES TRANSFERRED`
 
-تم نقل Git mirror إلى المستودع الجديد. التحقق المحلي أثبت وجود **225 فرعًا**، والتحقق عن بعد أثبت وجود `main` وجميع فروع المشروع المنقولة.
+تم نقل Git mirror إلى المستودع الجديد. التحقق المحلي أثبت **225 فرعًا**، والتحقق عن بعد أثبت وجود `main` وهذه الفروع المنقولة.
 
-### ملاحظة مهمة عن Pull Requests
+### Pull Requests / Reviews / Actions
 
-مراجع GitHub الداخلية من النوع `refs/pull/*` لا تُكتب عبر `git push --mirror`، ولذلك لم تُرحّل كـPR objects. هذا لا يعني فقدان Git commits أو الفروع.
+مراجع GitHub الداخلية `refs/pull/*` لا تُكتب عبر `git push --mirror`، لذلك لم تنتقل كـPR objects.
 
-### ملاحظة مهمة عن CI
+كذلك GitHub Actions workflow runs وjobs وlogs وartifacts وPR reviews ليست جزءًا من Git history ولا تعتبر منقولة تلقائيًا.
 
-GitHub Actions workflow runs وjob logs وartifacts وPR review history ليست جزءًا من Git history، ولذلك لا تُعتبر منقولة تلقائيًا مع الـmirror.
+لذلك فإن **الكود والفروع والتاريخ Git منقولون، بينما تاريخ GitHub UI/Actions يحتاج توثيقًا مستقلًا عندما تكون المحافظة عليه مطلوبة كدليل.**
+
+### نسخة العمل المحلية
+
+`C:\Users\badee\Desktop\ORION_NEXT`
+
+Remote الحالي:
+
+`https://github.com/badeemorse08-create/ORION_NEXT.git`
+
+والـmirror الاحتياطي:
+
+`C:\Users\badee\Desktop\ORION_NEXT_MIRROR.git`
+
+يُحتفظ به كنسخة احتياطية ولا يُستخدم كـWorking Tree.
 
 ---
 
-## 3. Git Canonical Anchors
+## 2. Canonical Git anchors الحالية
 
-### 3.1 Current main in migrated repository
+### 2.1 Current `main` بعد تثبيت الـLedger
 
-`main` في المستودع الجديد يشير إلى:
+`main` في المستودع الجديد يتقدم إلى:
 
-`eeafd8c257825a8d24ea8158d57688663b7301ed`
+`f3f1e07f7c7faf7400d119b8727c232f0c44df26`
 
 رسالة الـcommit:
 
-`docs: define paper execution timing telemetry boundary`
+`docs: establish ORION continuity and resume ledger`
 
-هذا هو **main canonical source state الذي نُقل من المستودع الأصلي** وقت الترحيل، وليس بالضرورة أحدث حالة موجودة على فروع التطوير اللاحقة.
+هذا هو **الرأس الحالي لـmain في المستودع الجديد** عند هذا التحديث.
 
-### 3.2 D2 explosive-mover resume branch
+### 2.2 D2 resume branch
 
 الفرع:
 
 `d2/explosive-mover-challenge-20260905`
 
-آخر رأس منقول:
+الرأس المنقول المتحقق منه:
 
 `4df818467ad91d28be92112e73c1813bea8aa0b4`
 
@@ -94,23 +103,33 @@ GitHub Actions workflow runs وjob logs وartifacts وPR review history ليست
 
 `D2: add GitHub Actions infrastructure probe`
 
-### 3.3 Canonical production baseline referenced by the development history
+الـcommit يضيف:
+
+`.github/workflows/d2-actions-infra-probe.yml`
+
+والـworkflow يستهدف `ubuntu-24.04` ويحتوي shell/filesystem/checkout/SHA probes. هذا الـbranch هو **نقطة التحقيق والاستئناف D2** الحالية، وليس `main`.
+
+### 2.3 Historical verification anchor
 
 `c6126e0b94781608147f321f737742f87f48bf2f`
 
-وهو commit مهم لسلامة Event Identity ومسار التحقق السابق. لا يُعامل وحده كـ`main` الحالي.
+هذا commit تاريخي مهم لمسار Event Identity/verification، لكنه **ليس الرأس الحالي لـmain**.
+
+المقارنة في المستودع الجديد تبين أن `c6126e0` و`eeafd8c` خطان متشعبان من merge-base تاريخي، لذلك لا ينبغي وصف `c6126e0` بأنه current main.
 
 ---
 
-## 4. الحالة الرسمية المعلنة داخل PROJECT STATE
+## 3. الحالة الرسمية للمشروع
+
+`ORION_PROJECT_STATE.md` يعلن:
 
 `PHASE 2 — CORE INTELLIGENCE COMPLETION`
 
-الحالة المعلنة في `ORION_PROJECT_STATE.md`:
+الحالة:
 
 `IN PROGRESS`
 
-ويظل `PROJECT STATE` هو المرجع الرسمي للحالة الحالية وفق نظام الحوكمة.
+ولا يجوز لهذه الوثيقة تغيير هذه الملكية دون تحديث `ORION_PROJECT_STATE.md` نفسه.
 
 المسار التنفيذي المثبت:
 
@@ -140,60 +159,84 @@ Execution
 Report
 ```
 
-العقود التي توصف بأنها مستقرة/Canonical في PROJECT STATE تشمل `AnalysisResult`, `ProfileResult`, `ScoreResult`, `DecisionResult`, `ExecutionPlan`, `ExecutionResult`, و`ReportResult`.
+---
+
+## 4. Verification التاريخي المهم
+
+### 4.1 Phase 1
+
+الحالة الرسمية في PROJECT STATE:
+
+`COMPLETED / VERIFIED`
+
+تم اعتماد الأساس التعاقدي والمعماري وتوثيق Findings المرحلية.
+
+### 4.2 آخر Verification موثق داخل PROJECT STATE
+
+`108 tests — OK`
+
+`VERIFICATION PASSED`
+
+`Python syntax compilation — PASSED`
+
+كما تم تسجيل تنظيف التحذيرات المستهدفة الخاصة بـ`asyncio` و`pandas-ta day-frequency`.
+
+**قاعدة:** هذه النتيجة تظل التاريخ المعلن في PROJECT STATE إلى أن يقوم مالك الحالة بتحديثه. وجود نتائج تحقق لاحقة في Git/CI لا يبرر إعادة كتابة STATE تلقائيًا.
+
+### 4.3 Canonical Event Identity line
+
+الـhistory اللاحق يتضمن تصحيح Event Identity بحيث لا يعتمد `event_id` على timestamp عندما يوجد `source_event_id`، مع بقاء fallback canonicalization.
+
+لا يعاد فتح هذا العقد دون سبب معماري مثبت.
 
 ---
 
-## 5. آخر حالة Verification المعروفة من الوثائق الأساسية
+## 5. D6 execution / capital line
 
-الـ`PROJECT STATE` الحالي يوثق:
-
-- `108 tests — OK`
-- `VERIFICATION PASSED`
-- `Python syntax compilation — PASSED`
-
-كما يذكر تنظيف التحذيرات المستهدفة المرتبطة بدورة `asyncio` و`day-frequency` في `pandas-ta`.
-
-**تنبيه استمرارية:** هذه هي النتيجة المعلنة داخل الوثيقة الحالية، بينما توجد نتائج تحقق لاحقة في تاريخ التطوير محفوظة في Git/CI context. لا يجوز استبدال سجل 108 tests بهذه النتائج أو العكس دون تحديث المالك الرسمي للحالة.
-
----
-
-## 6. نقاط الاختبار والبوابات المهمة
-
-### 6.1 Phase 1
-
-`COMPLETED / VERIFIED` وفق PROJECT STATE.
-
-تم تثبيت الأساس التعاقدي والمعماري، مع إغلاق Findings المرحلية المذكورة في STATE.
-
-### 6.2 Event Identity blocker / correction
-
-Commit:
-
-`c6126e0b94781608147f321f737742f87f48bf2f`
-
-الدلالة:
-
-- إزالة workflow تشخيصي مؤقت من D2.
-- هذا الـcommit يقع ضمن خط العمل الذي انتهى إلى تثبيت Event Identity contract.
-
-**الحالة التشغيلية المسجلة في سجل المشروع:** تصحيح Event Identity أصبح جزءًا من baseline التطوير اللاحق، ولا يجوز إعادة فتحه دون سبب معماري مثبت.
-
-### 6.3 D6 execution/capital line
-
-Commit مرجعي تاريخي:
+Commit مرجعي:
 
 `2d3fc74dae0e7295b16e47b9e0ef1d85e46e1d22`
 
-يشير تاريخ المشروع إلى تثبيت خط D6 النهائي المرتبط بإدارة رأس المال وتنفيذ الورق، مع اختبارات دورة رأس المال، journal، allocation، recovery، duplicate protection وغيرها.
+تاريخ التطوير يربطه بخط D6 النهائي الخاص بإدارة رأس المال والتنفيذ الورقي، بما في ذلك دورة رأس المال، durable journal، allocation، compounding/minimum notional، concurrent allocation، recovery، وduplicate protection.
 
-### 6.4 D2 Campaign A — Real Historical Replay 7D
+### Real 1H paper run
 
-النطاق التاريخي:
+- `9,942 events`
+- Equity: `200 → 200`
+- Orders/Fills: `0 / 0`
+- Max DD: `0`
+- Health: `true`
+- Paper-only: `true`
+- Reconnect: `6`
+- Replay/recovery/capital equality: `true`
+
+### Real 8H paper run
+
+- `61,453 events`
+- Starting equity: `200`
+- Ending equity: `200.11733072598386`
+- `2 orders`
+- `1 fill`
+- Open position at end: `DASHUSDT`
+- Reconnect: `60`
+- Max DD: `0.05866536`
+- Duplicate: `0`
+- Runtime failure: `null`
+- Health: `true`
+- Paper-only: `true`
+- Replay/recovery/capital equality: `true`
+
+**Caveat:** هذا التشغيل ليس اعتمادًا نهائيًا بسبب سياسة `CLOSE_AT_END` / التعامل مع المركز المفتوح عند نهاية التشغيل.
+
+---
+
+## 6. D2 Campaign A — Real Historical Replay 7D
+
+الفترة:
 
 `2026-08-18 → 2026-08-24`
 
-النتيجة المسجلة:
+النتيجة المؤهلة:
 
 - `40,320` processed events
 - `0` orders
@@ -207,39 +250,47 @@ Dataset hash:
 
 Fixed universe:
 
-20 symbols؛ لذلك لا تعتبر الحملة دليلًا على complete broad-market capture.
+20 symbols.
 
 Artifact:
 
 `d2-real-historical-replay-7d`
 
-Digest:
-
-`sha256:9b87cdf4ebdeafd83bea530dd3d700f03e6d069a63d731f340cbbd9eb4086cba`
-
 Artifact ID:
 
 `9926365613`
 
-**Verdict:** `TECHNICALLY QUALIFIED WITHIN FIXED-20 SCOPE; NOT BROAD-MARKET QUALIFICATION`.
+Digest:
 
-### 6.5 D2 explosive-mover challenge
+`sha256:9b87cdf4ebdeafd83bea530dd3d700f03e6d069a63d731f340cbbd9eb4086cba`
+
+Verdict:
+
+`TECHNICALLY QUALIFIED WITHIN FIXED-20 SCOPE`
+
+لكن:
+
+`NOT BROAD-MARKET QUALIFICATION`
+
+لأن universe تاريخية كاملة point-in-time لم تُثبت.
+
+---
+
+## 7. D2 Explosive-Mover Challenge
 
 النطاق:
 
-22 symbols = fixed 20 + `TRUMPUSDT` + `STXUSDT`.
+22 symbols = fixed 20 + `TRUMPUSDT` + `STXUSDT`
 
-الهدف:
-
-قياس قدرة النظام على discovery / decision / entry trace للأحجام الكبيرة عبر:
+Thresholds:
 
 `+10%, +20%, +30%, +50%, +70%, +100%, +150%, +200%`
 
-وعلى نوافذ:
+Windows:
 
 `5m, 15m, 30m, 1h, 4h, 24h`
 
-مع تتبع causal:
+الـcausal trace المطلوب:
 
 ```text
 movement
@@ -255,74 +306,68 @@ movement
 → exit
 ```
 
-مع `no-entry reason` عند عدم الدخول.
+مع تسجيل `no-entry reason` عند عدم الدخول.
 
-### 6.6 D2 challenge evidence-layer defect
+### Evidence-layer defect
 
 Commit:
 
 `3b6f670de66eecb23be0960d9d9fa5b08dfad667`
 
-النتيجة:
+التصحيح عالج null-safety في evidence builder.
 
-- إصلاح null-safety في evidence builder.
-- replay اللاحق أكمل `44,352` processed events/decision cycles مع `0` orders و`0` fills.
-- validation لم يكتمل؛ لذلك لم يتم إصدار checksum/artifact النهائي لتلك المحاولة.
+التشغيل اللاحق وصل إلى:
 
-### 6.7 D2 diagnostic commit
+- `44,352` processed events / decision cycles
+- `0` orders
+- `0` fills
+
+لكن validation لم يكتمل، ولم يتم إصدار checksum/artifact النهائي لتلك المحاولة.
+
+### Diagnostic validation
 
 Commit:
 
 `c9e6567e2e13545839f3e8e4ca026d85bf6c146a`
 
-الغرض:
+الغرض: جعل validation يطبع expected/actual/mismatches بدل assertions الصامتة.
 
-تحويل validation إلى diagnostic output لطباعة expected/actual/mismatches.
-
-### 6.8 D2 Actions infrastructure probe
+### Actions infrastructure probe
 
 Commit:
 
 `4df818467ad91d28be92112e73c1813bea8aa0b4`
 
-الملف:
+workflow:
 
 `.github/workflows/d2-actions-infra-probe.yml`
 
-الـworkflow يستخدم:
+والـcommit المتحقق منه يثبت أن الـprobe مصمم لاختبار runner identity، shell execution، filesystem، checkout، ومطابقة `github.sha`. fileciteturn188file0L3-L11
 
-`ubuntu-24.04`
+الحالة التاريخية المسجلة:
 
-ويحاول تنفيذ shell step، filesystem probe، checkout، ثم verify للـSHA.
-
-**الحالة:** هذه هي آخر نقطة استئناف D2 في الفرع المرحّل.
+`BLOCKED — HOSTED RUNNER / JOB INITIALIZATION`
 
 ---
 
-## 7. Blockers المفتوحة
+## 8. D2 Actions blocker
 
 ### BLOCKER-D2-ACTIONS-INIT
 
-الوصف:
+فشل تهيئة hosted runner / job initialization في المحاولة المتأثرة قبل تنفيذ الخطوات.
 
-تعذر إكمال تشغيل D2 بسبب فشل تهيئة hosted runner / job initialization في بيئة GitHub Actions.
+هذه ليست نتيجة فشل في منطق ORION نفسه.
 
-الـinfrastructure probe نفسها لم تصل إلى تنفيذ الـsteps في المحاولة المتأثرة.
+### ما لم نفعله لتجاوز blocker
 
-### قيود القرار
-
-لا يجوز بسبب هذا الـblocker:
-
-- تخفيض Fast Recall standards.
-- إدخال movers يدويًا إلى candidate set كحل لإجبار النجاح.
-- تغيير thresholds بهدف تجاوز الفشل.
-- اعتبار D2 qualified.
-- بدء Campaign B.
-- إعلان Production Merge.
+- لم نضع movers يدويًا داخل candidate set لإجبار النجاح.
+- لم نخفض Fast Recall standards.
+- لم نغير thresholds فقط لتحويل report إلى PASS.
+- لم نعلن D2 qualified.
+- لم نبدأ Campaign B.
+- لم نعلن Production Merge.
 
 ### Resume Gate
-
-قبل أي D2 replay كامل:
 
 ```text
 FRESH MINIMAL ACTIONS PROBE
@@ -334,25 +379,25 @@ first shell step executes
 probe PASS
 ```
 
-بعد اجتياز البوابة:
+بعد PASS:
 
-**تشغيل واحد فقط** للحملة D2 ذات 22 رمزًا، ثم تثبيت جميع الأدلة والـSHA256SUMS والـartifact قبل الحكم.
+**تشغيل واحد فقط** لـ22-symbol D2 challenge، ثم:
+
+`validation → SHA256SUMS → artifact → review → verdict`
 
 ---
 
-## 8. حالـة Complete Universe / Broad-Market Qualification
+## 9. Complete historical universe blocker
 
-لا يوجد artifact موثوق يثبت complete point-in-time Binance Spot USDT universe لفترة Campaign A المطلوبة.
+لا يوجد artifact موثوق يثبت complete point-in-time Binance Spot USDT universe للفترة التاريخية المطلوبة.
 
-استخدام `exchangeInfo` الحالي للحصول على universe تاريخي سيكون future leakage وغير مقبول.
+استخدام `exchangeInfo` الحالي للحصول على historical universe سيؤدي إلى future leakage وغير مقبول.
 
-لذلك:
+الحالة:
 
 `universe_completeness = NOT_ESTABLISHED`
 
-ولا يجوز اعتبار Campaign A أو D2 challenge الحالية اختبارًا شاملًا للسوق كله.
-
-المطلوب مستقبلًا:
+المتطلبات المستقبلية:
 
 - `effective_timestamp_utc`
 - `symbol`
@@ -364,11 +409,13 @@ probe PASS
 - immutable provenance
 - hash
 
+لذلك Campaign A وD2 challenge لا يثبتان complete broad-market capture.
+
 ---
 
-## 9. Performance evidence المهمة
+## 10. Performance evidence
 
-تم تنفيذ profiling تاريخي لمدة 24 ساعة simulated:
+Profiling لمدة 24 simulated hours:
 
 - `5,760` events/cycles
 - حوالي `849.98s`
@@ -376,88 +423,62 @@ probe PASS
 - حوالي `101.65x` speedup
 - Peak RSS حوالي `2410.75 MB`
 - zero observed memory growth
-- cumulative scoring/evaluation كان المكوّن الأكبر في الزمن
+- scoring/evaluation كان الجزء الأكبر من الزمن
 
-الاستنتاج التشغيلي المسجل:
+الاستنتاج التشغيلي التاريخي:
 
-الـ60-minute timeout غير كافٍ لتشغيل Campaign A مع replay/determinism/downstream ضمن job واحد؛ تم اعتماد 240 دقيقة كتصحيح orchestration-only.
+60-minute timeout لم يكن كافيًا لـCampaign A مع replay/determinism/downstream في job واحد.
 
----
+تم اعتماد 240 دقيقة كتصحيح orchestration-only في:
 
-## 10. Paper-run evidence
-
-ضمن التاريخ التشغيلي السابق:
-
-### Real 1H paper run
-
-- `9,942 events`
-- start/end equity: `200 → 200`
-- orders/fills: `0 / 0`
-- max DD: `0`
-- health: `true`
-- paper-only: `true`
-- reconnect: `6`
-- replay/recovery/capital equality: `true`
-
-### Real 8H paper run
-
-- `61,453 events`
-- start equity: `200`
-- end equity: `200.11733072598386`
-- `2 orders`
-- `1 fill`
-- open position at end: `DASHUSDT`
-- reconnect: `60`
-- max DD: `0.05866536`
-- duplicate: `0`
-- runtime failure: `null`
-- health: `true`
-- paper-only: `true`
-- replay/recovery/capital equality: `true`
-
-**Caveat:** لم يكن هذا run اعتمادًا نهائيًا بسبب ambiguity الخاصة بسياسة `CLOSE_AT_END`/end-of-run position handling.
+`d33da3e7af8f61e7091db0ff9971995a6619b01b`
 
 ---
 
-## 11. Large-move / anti-missed-opportunity requirement
+## 11. Opportunity Response / Anti-Missed-Opportunity Governance
 
-المشروع لديه خط حوكمة لاحق مخصص لـOpportunity Response وanti-missed-opportunity gates.
+Git history يحتوي حدودًا موثقة لهذا الجانب، منها:
 
-الـGit history يحتوي commits حديثة صريحة لهذه الحدود، منها:
+- `11b8ea8373cf4eeb26417cc1de1ebcaa921bf199` — opportunity response latency and anti-missed-opportunity gates
+- `990602ddf1e86902e543aacbda4a4df5d840215d` — opportunity response and position-management boundaries
+- `aa825fb2e5944a9371cdccbc6d1a062a13b12b4c` — opportunity-response and position-management acceptance gates
+- `47bfa675f104b446ced084c9b8285c747df89472` — opportunity response and position lifecycle decision
+- `eeafd8c257825a8d24ea8158d57688663b7301ed` — paper execution timing telemetry boundary
 
-- `11b8ea8373cf4eeb26417cc1de1ebcaa921bf199` — add opportunity response latency and anti-missed-opportunity gates
-- `990602ddf1e86902e543aacbda4a4df5d840215d` — formalize opportunity response and position-management boundaries
-- `aa825fb2e5944a9371cdccbc6d1a062a13b12b4c` — add opportunity-response and position-management acceptance gates
-- `47bfa675f104b446ced084c9b8285c747df89472` — record opportunity response and position lifecycle decision
-- `eeafd8c257825a8d24ea8158d57688663b7301ed` — define paper execution timing telemetry boundary
+هذه الحدود تثبت أن مفهوم **عدم ترك الفرصة الكبيرة تمر دون قياس causal latency** أصبح جزءًا من الحوكمة التقنية.
 
-هذه الـcommits مهمة لأنها تعني أن شرط **عدم ترك الفرصة الكبيرة تمر بلا قياس** ليس مجرد طلب شفهي؛ هناك بالفعل خط توثيق/حوكمة في Git لهذا المفهوم.
+لكنها **لا تثبت**:
 
-لكن وجود هذه الحدود في Git **لا يساوي** إثبات أن النظام يحقق نسبة ربح يومية ثابتة 20% أو 30%، ولا يثبت التقاطًا كاملًا لحركة +150% أو +200%.
+- ربحًا يوميًا ثابتًا 20% أو 30%.
+- التقاط 100% من حركة +150% أو +200%.
+- ضمانًا لأي نسبة ربح.
+
+أي ادعاء من هذه الأنواع يحتاج evidence مستقلًا.
 
 ---
 
-## 12. ما تم إثباته وما لم يتم إثباته
+## 12. ما تم إثباته / ما لم يتم إثباته
 
 ### مثبت
 
-- البنية متعددة الطبقات وحدود الـpipeline الأساسية.
 - Phase 1 completion وفق PROJECT STATE.
-- canonical contracts الرئيسية المذكورة في STATE.
-- وجود execution safety / capital lifecycle / paper controls في خط D6.
-- Event identity correction ضمن التاريخ اللاحق.
-- Real 7D historical replay مؤهل تقنيًا ضمن fixed-20 universe.
-- deterministic replay gate للحملة المؤهلة.
-- وجود targeted D2 challenge وتعريف evidence trace.
-- وجود anti-missed-opportunity / opportunity response governance في Git.
+- الأساس متعدد الطبقات وحدود الـpipeline الأساسية.
+- Canonical contracts الرئيسية في STATE.
+- execution safety / capital lifecycle / paper controls في خط D6.
+- Event Identity correction ضمن التاريخ اللاحق.
+- Campaign A 7D qualified تقنيًا ضمن fixed-20 scope.
+- determinism gate للحملة المؤهلة.
+- D2 explosive-mover challenge scope وcausal trace requirements.
+- opportunity response / anti-missed-opportunity governance في Git.
+- Git history والـ225 branch تم نقلها إلى المستودع الجديد.
 
 ### غير مثبت
 
 - complete point-in-time Binance universe.
 - broad-market qualification.
 - capture of every explosive mover.
-- guarantee of `20%` أو `30%` daily profit.
-- guarantee of capturing `100%` of any `150%–200%` move.
+- fixed `20%` أو `30%` daily profit.
+- guaranteed capture of full `150%–200%` move.
 - Production live-trading approval.
 - Campaign B start.
 - D2 explosive-mover final qualification.
@@ -466,34 +487,46 @@ probe PASS
 
 ## 13. Last Known Good State
 
-لأغراض الاستئناف البرمجي:
+### Git / integration
 
-**آخر حالة Git canonical مستقرة معروفة:** تعتمد على `main` وPROJECT STATE الحاليين، مع اعتبار نتائج D2 اللاحقة فروع تحقيق/تجربة غير مدمجة إلى main.
+آخر `main` canonical في المستودع الجديد:
 
-**آخر D2 investigation point:**
+`f3f1e07f7c7faf7400d119b8727c232f0c44df26`
+
+### D2 investigation
+
+آخر نقطة D2 المرحّلة المتحقق منها:
 
 `d2/explosive-mover-challenge-20260905 @ 4df818467ad91d28be92112e73c1813bea8aa0b4`
 
-ولا يجوز تخطي هذه النقطة والذهاب مباشرة إلى Campaign B.
+لا يعني هذا أن D2 اجتازت؛ بل يعني أنها **نقطة الاستئناف الحالية للتحقيق**.
+
+### Last verified qualification
+
+Campaign A:
+
+`TECHNICALLY QUALIFIED WITHIN FIXED-20 SCOPE`
+
+مع استمرار blocker الخاص بـcomplete universe/broad-market qualification.
 
 ---
 
 ## 14. Exact Resume Point
 
-عند استعادة العمل:
+عند استئناف التطوير/التحقق:
 
 ```text
-1. Verify migrated repository access.
-2. Run fresh minimal GitHub Actions infrastructure probe.
-3. Require actual runner execution.
-4. If probe PASS:
-   run exactly one 22-symbol D2 explosive-mover challenge.
-5. Validate evidence schema.
-6. Produce SHA256SUMS.
-7. Upload final artifact.
-8. Review broad-move traces and no-entry reasons.
-9. Update PROJECT STATE / CHANGELOG / DECISIONS as required.
-10. Only then decide whether D2 is qualified.
+A. Confirm new repository / main access
+B. Run fresh minimal Actions infrastructure probe
+C. Require actual runner execution
+D. If PASS → run exactly one 22-symbol D2 challenge
+E. Validate complete evidence schema
+F. Produce SHA256SUMS
+G. Upload final artifact
+H. Review large-move traces + no-entry reasons
+I. Update owner documents (STATE / CHANGELOG / DECISIONS / PROBLEMS) as evidence requires
+J. Decide D2 qualification
+K. Only after D2 qualification assess Campaign B gate
 ```
 
 ### Forbidden before D2 qualification
@@ -501,31 +534,41 @@ probe PASS
 ```text
 Campaign B
 Production Merge
-Live orders / real credentials
+Live credentials / live orders
 Weakening discovery gates
-Manual injection of movers
-Changing thresholds solely to make the report pass
+Manual mover injection
+Changing thresholds only to make the report pass
 ```
 
 ---
 
-## 15. Migration reconciliation rules
+## 15. Migration reconciliation
 
-بعد الترحيل إلى `badeemorse08-create/ORION_NEXT`:
+الترحيل الحالي يحافظ على:
 
-1. Git history والفروع هي المرجع المنقول.
-2. PR objects وreviews لا تعتبر منقولة.
-3. Actions runs/logs/artifacts لا تعتبر منقولة.
-4. أي evidence خارجي يجب أن يحصل على reference مستقل إذا أريد الحفاظ عليه كدليل دائم.
-5. لا يُعاد كتابة التاريخ القديم لإخفاء حالات الفشل أو الـblockers.
-6. أي run جديد على الحساب الجديد يجب أن يحمل commit SHA واضحًا.
-7. عند أول تشغيل ناجح على الحساب الجديد، تُسجل هوية المستودع الجديد والـworkflow run والـartifact داخل هذا الـLedger وفي الوثائق المالكة عند الحاجة.
+1. Git objects.
+2. Git commits.
+3. 225 branches.
+4. `main`.
+5. جميع فروع D1/D2/D6/D7 الموجودة كـGit refs.
+
+ولا يحافظ تلقائيًا على:
+
+1. PR objects.
+2. Reviews / review threads.
+3. GitHub Actions workflow-run UI history.
+4. Job logs.
+5. Artifacts.
+
+أي evidence خارجي يريد المشروع الاحتفاظ به بشكل دائم يجب تحويله إلى reference/ملف/Artifact مستقل قابل للتتبع.
+
+لا تتم إعادة كتابة التاريخ لإخفاء failures أو blockers.
 
 ---
 
-## 16. قاعدة تحديث هذا السجل
+## 16. قاعدة سجل الاختبارات المستقبلية
 
-عند كل Gate مهم، تضاف entry جديدة تتضمن على الأقل:
+كل Gate أو Campaign مهم جديد يجب أن يسجل:
 
 ```text
 Date/Time UTC
@@ -539,59 +582,78 @@ Status
 Evidence Artifact
 Digest / SHA256
 Observed Result
-Blocker / Caveat
+Scope
+Caveat
+Blocker
 Decision
 Next Authorized Action
 ```
 
-لا يتم حذف entries التاريخية.
+ولا تحذف entries التاريخية.
 
-تصحيح البيانات يكون عبر **Correction Entry** جديدة مع الإشارة إلى entry السابقة.
-
----
-
-## 17. الوضع الحالي عند إنشاء هذا السجل
-
-**Repository migration:** `VERIFIED`  
-**Git branches transferred:** `225`  
-**Main present in destination:** `YES`  
-**D2 current resume branch:** `d2/explosive-mover-challenge-20260905`  
-**D2 current head:** `4df818467ad91d28be92112e73c1813bea8aa0b4`  
-**D2 status:** `BLOCKED — ACTIONS HOSTED RUNNER / JOB INITIALIZATION`  
-**Campaign A:** `TECHNICALLY QUALIFIED WITHIN FIXED-20 SCOPE`  
-**Broad-market qualification:** `NOT ESTABLISHED`  
-**Campaign B:** `BLOCKED`  
-**Production approval:** `NOT APPROVED`
+التصحيح يكون عبر `Correction Entry` جديدة مع ربطها بالentry السابقة.
 
 ---
 
-## 18. الوثائق التي يجب أن تبقى مالكة للمعلومات
+## 17. قواعد استخدام هذا السجل
 
-- `ORION_GPT_EXECUTION_RULES.md`
-- `ORION_CONTROL_INDEX.md`
-- `ORION_PROJECT_STATE.md`
-- `ORION_WORK_PROTOCOL.md`
-- `ORION_PROJECT_CHARTER.md`
-- `ORION_ARCHITECTURE.md`
-- `ORION_ROADMAP.md`
-- `ORION_FUTURE_ROADMAP.md`
-- `ORION_ARCHITECTURE_FINDINGS.md`
-- `ORION_DECISIONS.md`
-- `ORION_CHANGELOG.md`
-- `ORION_KNOWN_PROBLEMS.md`
-- `ORION_RESTORE_ALL_BRANCH_SYNC.md`
+عند بداية جلسة استئناف طويلة:
 
-هذا السجل يربط بينها ولا يلغي ملكيتها.
+```text
+GPT EXECUTION RULES
+↓
+CONTROL INDEX
+↓
+PROJECT STATE
+↓
+CONTINUITY & RESUME LEDGER
+↓
+ROADMAP / الوثيقة المتخصصة المطلوبة
+```
 
----
+لا تستخدم هذا الـLedger لتغيير owner documents من خلفها.
 
-## 19. اعتماد الوثيقة
+عندما تتعارض هذه الوثيقة مع owner document:
 
-**هذه النسخة:** `DRAFT`  
-**لا تعتبر Canonical داخل ORION قبل إدخالها إلى المستودع الجديد وتحديث المراجع المالكة عند الحاجة.**
-
-عند تثبيتها رسميًا، يجب أن تصبح نقطة الاستمرارية التي يبدأ منها أي مراجعة شاملة بعد انقطاع أو نقل مستودع أو تغيير حساب.
+1. تحقق من الدليل.
+2. حدد الحقيقة الحالية.
+3. حدّث الوثيقة المالكة إذا كانت هي المتأخرة.
+4. أضف Correction Entry هنا عند الحاجة.
 
 ---
 
-**END OF ORION CONTINUITY & RESUME LEDGER**
+## 18. الحالة الحالية عند هذا التحديث
+
+| البند | الحالة |
+|---|---|
+| Repository migration | `VERIFIED` |
+| Git branches transferred | `225` |
+| Destination main | `f3f1e07` |
+| Working tree | `CLEAN` وقت التثبيت المحلي للـLedger |
+| Phase | `PHASE 2 — CORE INTELLIGENCE COMPLETION` |
+| Phase state | `IN PROGRESS` |
+| Campaign A | `QUALIFIED WITHIN FIXED-20 SCOPE` |
+| Broad-market qualification | `NOT ESTABLISHED` |
+| D2 explosive-mover challenge | `BLOCKED / NOT QUALIFIED` |
+| Current D2 resume branch | `d2/explosive-mover-challenge-20260905` |
+| Current D2 resume head | `4df8184` |
+| Campaign B | `BLOCKED` |
+| Production approval | `NOT APPROVED` |
+
+---
+
+## 19. اعتماد السجل
+
+هذه الوثيقة أصبحت الآن:
+
+`ACTIVE / CANONICAL CONTINUITY RECORD`
+
+داخل المستودع الجديد.
+
+آخر تثبيت لـLedger:
+
+`f3f1e07f7c7faf7400d119b8727c232f0c44df26`
+
+والخطوة التالية بعد هذا التحديث هي **Reconciliation بين هذا السجل و`ORION_CONTROL_INDEX.md` ثم مراجعة owner documents عند الحاجة**.
+
+**END**
