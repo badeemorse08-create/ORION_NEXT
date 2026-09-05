@@ -1,6 +1,6 @@
 # ORION — CONTROL INDEX
 
-الإصدار: 1.5
+الإصدار: 1.6
 الحالة: ACTIVE
 المشروع: ORION
 
@@ -34,10 +34,14 @@
   المشاكل المؤكدة فقط.
 - RESTORE/ALL SYNC CONTRACT → `ORION_RESTORE_ALL_BRANCH_SYNC.md`
   عقد MAIN/ALL والعزل والمرايا.
+- CONTINUITY & RESUME LEDGER → `ORION_CONTINUITY_AND_RESUME_LEDGER.md`
+  سجل الاستمرارية والاستئناف، يربط الحالة والاختبارات والبوابات والـblockers ونقطة الاستئناف، ولا يلغي ملكية الوثائق الأخرى.
 
 ## قاعدة المصدر الواحد
 
 كل معلومة لها مالك رئيسي واحد. لا تنشأ وثيقة بديلة تؤدي نفس الوظيفة دون قرار موثق.
+
+`ORION_CONTINUITY_AND_RESUME_LEDGER.md` لا يصبح مالكًا بديلًا للحالة أو المعمارية أو القرارات أو خارطة الطريق؛ دوره هو الربط والتتبع وتحديد نقطة الاستئناف.
 
 ## متى نقرأ الوثائق
 
@@ -45,6 +49,7 @@
 - أمر 1 → EXECUTION RULES + CONTROL INDEX + PROJECT STATE + ROADMAP ثم الوثائق المطلوبة فقط.
 - مراجعة تطوير → EXECUTION RULES + CONTROL INDEX + الحالة عند الحاجة + ARCHITECTURE/FINDINGS والكود المتأثر.
 - Workflow/Sync → EXECUTION RULES + CONTROL INDEX + WORK PROTOCOL + RESTORE/ALL SYNC CONTRACT عند تأثر MAIN/ALL.
+- استئناف بعد توقف/نقل مستودع/فقدان CI history → EXECUTION RULES + CONTROL INDEX + PROJECT STATE + CONTINUITY & RESUME LEDGER ثم الوثائق المتخصصة المطلوبة.
 - مراجعة شاملة/تعارض → مراجعة موسعة للوثائق والكود والاختبارات المتأثرة.
 
 ## سياسة التطوير والمزامنة الحالية
@@ -65,12 +70,26 @@ GITHUB هو مصدر الحقيقة أثناء التطوير.
 
 `ORION_PROJECT_STATE.md` هو المصدر الوحيد للمرحلة الحالية.
 
-## المستودع
+## المستودع الحالي
 
-`badeemorse-gif/ORION_NEXT`
+`badeemorse08-create/ORION_NEXT`
 
 الفرع المرجعي العام: `main`
 
-الجذر المحلي: `C:\Users\badee\Desktop\ORION_NEXT`
+المستودع الأصلي التاريخي:
+
+`badeemorse-gif/ORION_NEXT`
+
+الجذر المحلي:
+
+`C:\Users\badee\Desktop\ORION_NEXT`
+
+## قاعدة الترحيل
+
+Git history والـbranches المنقولة هي المرجع المنقول من المستودع الأصلي.
+
+PR objects وreviews وGitHub Actions workflow runs وjob logs وartifacts لا تعتبر منقولة تلقائيًا مع Git mirror.
+
+أي دليل CI تاريخي مطلوب للاستمرارية يجب الإشارة إليه من خلال CONTINUITY & RESUME LEDGER أو ملف/Artifact مستقل عندما يتوفر.
 
 END
