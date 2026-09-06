@@ -1,0 +1,39 @@
+name: D2 Explosive-Mover Report Schema Regression
+
+on:
+  push:
+    branches:
+      - d2/explosive-mover-challenge-20260905
+  pull_request:
+    branches: [main]
+    paths:
+      - tests/test_d2_explosive_mover_report_schema.py
+      - tools/explosive_mover_challenge.py
+      - .github/workflows/d2-report-schema-regression.yml
+  workflow_dispatch:
+
+jobs:
+  report-schema-regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependency
+        run: python -m pip install --disable-pip-version-check "pytest>=8,<9"
+
+      - name: Run report-schema regression only
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: python -m pytest -q tests/test_d2_explosive_mover_report_schema.py
