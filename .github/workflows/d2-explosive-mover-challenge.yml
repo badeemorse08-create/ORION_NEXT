@@ -6,10 +6,6 @@ on:
     types: [opened, synchronize, reopened]
     paths-ignore:
       - .github/workflows/d2-workflow-routing-diagnostic.yml
-  push:
-    branches: [d2/explosive-mover-challenge-20260905]
-    paths-ignore:
-      - .github/workflows/d2-workflow-routing-diagnostic.yml
   workflow_dispatch:
 
 jobs:
