@@ -21,8 +21,10 @@ from models.signal_snapshot import SignalIdentity, SignalSnapshot
 from tools.pending_order_revalidation import PendingOrder, RevalidationAction
 
 
-_DURABLE_SCHEMA_VERSION = 1
+_DURABLE_SCHEMA_VERSION = 2
 _DURABLE_INIT = "RUN_INIT"
+_DURABLE_INTENT_SUFFIX = "_INTENT"
+_DURABLE_COMMIT_SUFFIX = "_COMMIT"
 
 
 def _default_control_path() -> Path:
@@ -75,7 +77,6 @@ class PaperRuntimeSupervisor:
                     {"starting_equity": self.runtime.ledger.starting_equity},
                 )
             else:
-                self._durable_sequence = int(records[-1]["sequence"]) + 1
                 if records[0]["type"] != _DURABLE_INIT:
                     raise RuntimeError("invalid durable runtime journal: missing RUN_INIT")
                 persisted_equity = float(records[0]["starting_equity"])
@@ -111,12 +112,24 @@ class PaperRuntimeSupervisor:
     @property
     def terminal_orders(self) -> tuple[str, ...]:
         ids = {event.aggregate_id for event in self.runtime.orders.events if event.aggregate_type == "ORDER"}
-        return tuple(order_id for order_id in sorted(ids) if self.runtime.orders.get(order_id).state is not OrderState.PENDING)
+        return tuple(
+            order_id
+            for order_id in sorted(ids)
+            if self.runtime.orders.get(order_id).state is not OrderState.PENDING
+        )
 
     @property
     def active_positions(self) -> tuple:
-        symbols = {event.payload.get("symbol") for event in self.runtime.positions.events if event.payload.get("symbol")}
-        return tuple(position for symbol in sorted(symbols) if (position := self.runtime.positions.active_for_symbol(str(symbol))) is not None)
+        symbols = {
+            event.payload.get("symbol")
+            for event in self.runtime.positions.events
+            if event.payload.get("symbol")
+        }
+        return tuple(
+            position
+            for symbol in sorted(symbols)
+            if (position := self.runtime.positions.active_for_symbol(str(symbol))) is not None
+        )
 
     @property
     def account_equity(self) -> float:
@@ -163,6 +176,15 @@ class PaperRuntimeSupervisor:
             raise RuntimeError("paper runtime is failed closed")
         assert self.control is not None
         self.control.require_entry_allowed(source="runtime", reason="supervisor.submit_signal")
+        payload = {
+            "snapshot": snapshot.canonical_payload(),
+            "now": now.isoformat(),
+            "timeframe": timeframe,
+            "market_regime": market_regime,
+            "intent_id": intent_id,
+            "order_id": order_id,
+        }
+        operation_id = self._begin_durable_operation("SUBMIT", payload)
         pending = self.runtime.submit_signal(
             snapshot,
             now=now,
@@ -171,18 +193,14 @@ class PaperRuntimeSupervisor:
             intent_id=intent_id,
             order_id=order_id,
         )
-        operation = ("submit", snapshot, now, timeframe, market_regime, pending.intent_id, pending.order_id)
-        self._record_operation(
-            operation,
-            "SUBMIT",
-            {
-                "snapshot": snapshot.canonical_payload(),
-                "now": now.isoformat(),
-                "timeframe": timeframe,
-                "market_regime": market_regime,
-                "intent_id": pending.intent_id,
-                "order_id": pending.order_id,
-            },
+        commit_payload = {
+            **payload,
+            "intent_id": pending.intent_id,
+            "order_id": pending.order_id,
+        }
+        self._commit_durable_operation(operation_id, "SUBMIT", commit_payload)
+        self._operations.append(
+            ("submit", snapshot, now, timeframe, market_regime, pending.intent_id, pending.order_id)
         )
         return pending
 
@@ -199,6 +217,16 @@ class PaperRuntimeSupervisor:
     ) -> RevalidationAction:
         if self._failed:
             raise RuntimeError("paper runtime is failed closed")
+        payload = {
+            "intent_id": intent_id,
+            "snapshot": snapshot.canonical_payload(),
+            "market_price": float(market_price),
+            "now": now.isoformat(),
+            "timeframe": timeframe,
+            "market_regime": market_regime,
+            "replacement_order_id": replacement_order_id,
+        }
+        operation_id = self._begin_durable_operation("REVALIDATE", payload)
         action = self.runtime.revalidate(
             intent_id=intent_id,
             snapshot=snapshot,
@@ -209,29 +237,25 @@ class PaperRuntimeSupervisor:
             replacement_order_id=replacement_order_id,
         )
         current = self.runtime.pending.active_for_intent(intent_id)
-        canonical_replacement_id = current.order_id if action is RevalidationAction.REPLACE and current is not None else None
-        operation = (
-            "revalidate",
-            intent_id,
-            snapshot,
-            market_price,
-            now,
-            timeframe,
-            market_regime,
-            canonical_replacement_id,
+        canonical_replacement_id = (
+            current.order_id if action is RevalidationAction.REPLACE and current is not None else None
         )
-        self._record_operation(
-            operation,
-            "REVALIDATE",
-            {
-                "intent_id": intent_id,
-                "snapshot": snapshot.canonical_payload(),
-                "market_price": float(market_price),
-                "now": now.isoformat(),
-                "timeframe": timeframe,
-                "market_regime": market_regime,
-                "replacement_order_id": canonical_replacement_id,
-            },
+        commit_payload = {
+            **payload,
+            "replacement_order_id": canonical_replacement_id,
+        }
+        self._commit_durable_operation(operation_id, "REVALIDATE", commit_payload)
+        self._operations.append(
+            (
+                "revalidate",
+                intent_id,
+                snapshot,
+                market_price,
+                now,
+                timeframe,
+                market_regime,
+                canonical_replacement_id,
+            )
         )
         return action
 
@@ -241,6 +265,17 @@ class PaperRuntimeSupervisor:
         if event.event_id in self._processed_event_ids:
             self._duplicate_events += 1
             return ()
+        payload = {
+            "event": {
+                "symbol": event.symbol,
+                "event_timestamp": event.event_timestamp.isoformat(),
+                "event_type": event.event_type.value,
+                "payload": dict(event.payload),
+                "source_timestamp": event.source_timestamp.isoformat() if event.source_timestamp else None,
+                "source_event_id": event.source_event_id,
+            }
+        }
+        operation_id = self._begin_durable_operation("MARKET", payload)
         try:
             assert self.event_processor is not None
             result = self.event_processor(event)
@@ -249,21 +284,8 @@ class PaperRuntimeSupervisor:
             raise
         self._processed_event_ids.add(event.event_id)
         self._last_event = event
-        operation = ("market", event)
-        self._record_operation(
-            operation,
-            "MARKET",
-            {
-                "event": {
-                    "symbol": event.symbol,
-                    "event_timestamp": event.event_timestamp.isoformat(),
-                    "event_type": event.event_type.value,
-                    "payload": dict(event.payload),
-                    "source_timestamp": event.source_timestamp.isoformat() if event.source_timestamp else None,
-                    "source_event_id": event.source_event_id,
-                }
-            },
-        )
+        self._commit_durable_operation(operation_id, "MARKET", payload)
+        self._operations.append(("market", event))
         self.account_equity
         return result
 
@@ -276,17 +298,17 @@ class PaperRuntimeSupervisor:
         return processed
 
     def recover(self) -> "PaperRuntimeSupervisor":
-        """Rebuild canonical aggregate state from the durable operation journal when configured."""
+        """Rebuild canonical aggregate state from committed durable operations."""
         assert self.control is not None
         recovered_control = TradingControlStore(self.control.path)
         if self.durable_state_path is not None:
             records = self._read_durable_records()
             if not records:
                 starting_equity = self.runtime.ledger.starting_equity
-                operation_records: list[dict[str, Any]] = []
+                committed_operations: list[dict[str, Any]] = []
             else:
                 starting_equity = float(records[0]["starting_equity"])
-                operation_records = records[1:]
+                committed_operations = self._committed_operations(records)
             recovered = PaperRuntimeSupervisor(
                 runtime=PaperRealtimeLifecycle(
                     ledger=PaperLedger(starting_equity=starting_equity),
@@ -297,7 +319,7 @@ class PaperRuntimeSupervisor:
             )
             recovered._replaying = True
             try:
-                for record in operation_records:
+                for record in committed_operations:
                     self._replay_durable_record(recovered, record)
             finally:
                 recovered._replaying = False
@@ -348,10 +370,30 @@ class PaperRuntimeSupervisor:
     def no_live_path(self) -> bool:
         return self.runtime.no_live_execution()
 
-    def _record_operation(self, operation: tuple, durable_type: str, payload: dict[str, Any]) -> None:
-        self._operations.append(operation)
-        if self.durable_state_path is not None and not self._replaying:
-            self._append_durable_record(durable_type, payload)
+    def _begin_durable_operation(self, operation_type: str, payload: dict[str, Any]) -> Optional[int]:
+        if self.durable_state_path is None or self._replaying:
+            return None
+        operation_id = self._durable_sequence
+        self._append_durable_record(
+            f"{operation_type}{_DURABLE_INTENT_SUFFIX}",
+            {"operation_id": operation_id, "payload": payload},
+        )
+        return operation_id
+
+    def _commit_durable_operation(
+        self,
+        operation_id: Optional[int],
+        operation_type: str,
+        payload: dict[str, Any],
+    ) -> None:
+        if self.durable_state_path is None or self._replaying:
+            return
+        if operation_id is None:
+            raise RuntimeError("durable runtime operation is missing intent")
+        self._append_durable_record(
+            f"{operation_type}{_DURABLE_COMMIT_SUFFIX}",
+            {"operation_id": operation_id, "payload": payload},
+        )
 
     def _append_durable_record(self, record_type: str, payload: dict[str, Any]) -> None:
         assert self.durable_state_path is not None
@@ -399,38 +441,70 @@ class PaperRuntimeSupervisor:
         return records
 
     @staticmethod
+    def _committed_operations(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        intents: dict[int, dict[str, Any]] = {}
+        commits: list[dict[str, Any]] = []
+        committed_ids: set[int] = set()
+        for record in records[1:]:
+            record_type = str(record["type"])
+            operation_id = int(record.get("operation_id", 0))
+            if operation_id <= 1:
+                raise RuntimeError("invalid durable runtime journal operation id")
+            if record_type.endswith(_DURABLE_INTENT_SUFFIX):
+                if operation_id in intents or operation_id in committed_ids:
+                    raise RuntimeError("duplicate durable runtime journal operation intent")
+                intents[operation_id] = record
+                continue
+            if record_type.endswith(_DURABLE_COMMIT_SUFFIX):
+                if operation_id not in intents:
+                    raise RuntimeError("durable runtime journal contains orphan commit")
+                if operation_id in committed_ids:
+                    raise RuntimeError("duplicate durable runtime journal commit")
+                base_type = record_type[: -len(_DURABLE_COMMIT_SUFFIX)]
+                intent_type = str(intents[operation_id]["type"])[ : -len(_DURABLE_INTENT_SUFFIX)]
+                if base_type != intent_type:
+                    raise RuntimeError("durable runtime journal intent/commit type mismatch")
+                if not isinstance(record.get("payload"), dict):
+                    raise RuntimeError("durable runtime journal commit payload is missing")
+                commits.append(record)
+                committed_ids.add(operation_id)
+                continue
+            raise RuntimeError(f"unsupported durable runtime journal operation: {record_type}")
+        return commits
+
+    @staticmethod
     def _replay_durable_record(recovered: "PaperRuntimeSupervisor", record: dict[str, Any]) -> None:
         record_type = str(record["type"])
-        if record_type == _DURABLE_INIT:
-            return
-        if record_type == "SUBMIT":
-            snapshot = PaperRuntimeSupervisor._snapshot_from_payload(record["snapshot"])
+        payload = dict(record["payload"])
+        operation_type = record_type[: -len(_DURABLE_COMMIT_SUFFIX)]
+        if operation_type == "SUBMIT":
+            snapshot = PaperRuntimeSupervisor._snapshot_from_payload(payload["snapshot"])
             recovered.submit_signal(
                 snapshot,
-                now=PaperRuntimeSupervisor._parse_datetime(record["now"]),
-                timeframe=str(record["timeframe"]),
-                market_regime=str(record["market_regime"]),
-                intent_id=str(record["intent_id"]),
-                order_id=str(record["order_id"]),
+                now=PaperRuntimeSupervisor._parse_datetime(payload["now"]),
+                timeframe=str(payload["timeframe"]),
+                market_regime=str(payload["market_regime"]),
+                intent_id=str(payload["intent_id"]),
+                order_id=str(payload["order_id"]),
             )
             return
-        if record_type == "REVALIDATE":
-            snapshot = PaperRuntimeSupervisor._snapshot_from_payload(record["snapshot"])
-            replacement_order_id = record.get("replacement_order_id")
+        if operation_type == "REVALIDATE":
+            snapshot = PaperRuntimeSupervisor._snapshot_from_payload(payload["snapshot"])
+            replacement_order_id = payload.get("replacement_order_id")
             recovered.revalidate(
-                intent_id=str(record["intent_id"]),
+                intent_id=str(payload["intent_id"]),
                 snapshot=snapshot,
-                market_price=float(record["market_price"]),
-                now=PaperRuntimeSupervisor._parse_datetime(record["now"]),
-                timeframe=str(record["timeframe"]),
-                market_regime=str(record["market_regime"]),
+                market_price=float(payload["market_price"]),
+                now=PaperRuntimeSupervisor._parse_datetime(payload["now"]),
+                timeframe=str(payload["timeframe"]),
+                market_regime=str(payload["market_regime"]),
                 replacement_order_id=str(replacement_order_id) if replacement_order_id else None,
             )
             return
-        if record_type == "MARKET":
-            recovered.process_market_event(PaperRuntimeSupervisor._market_event_from_payload(record["event"]))
+        if operation_type == "MARKET":
+            recovered.process_market_event(PaperRuntimeSupervisor._market_event_from_payload(payload["event"]))
             return
-        raise RuntimeError(f"unsupported durable runtime journal operation: {record_type}")
+        raise RuntimeError(f"unsupported durable runtime journal operation: {operation_type}")
 
     @staticmethod
     def _replay_tuple_operation(recovered: "PaperRuntimeSupervisor", operation: tuple) -> None:
