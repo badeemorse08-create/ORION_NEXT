@@ -63,6 +63,9 @@ class TestPaperProcessCrashRecovery(unittest.TestCase):
                     raise RuntimeError("simulated crash before durable commit")
                 original_append(record_type, payload)
 
+            # Process A reaches the runtime mutation after the INTENT fsync, but
+            # crashes before the COMMIT fsync. The mutation is therefore transient
+            # in Process A and must not become recoverable state.
             with patch.object(PaperRuntimeSupervisor, "_append_durable_record", side_effect=crash_before_commit):
                 with self.assertRaisesRegex(RuntimeError, "simulated crash before durable commit"):
                     supervisor.submit_signal(_snapshot(now), now=now, order_id="ORDER-UNCOMMITTED")
@@ -70,13 +73,18 @@ class TestPaperProcessCrashRecovery(unittest.TestCase):
             records = _records(runtime_path)
             self.assertEqual([record["type"] for record in records], ["RUN_INIT", "SUBMIT_INTENT"])
             self.assertEqual(records[1]["operation_id"], 2)
-            self.assertEqual(supervisor.terminal_orders, ("ORDER-UNCOMMITTED",))
+            self.assertEqual(tuple(order.order_id for order in supervisor.active_orders), ("ORDER-UNCOMMITTED",))
 
+            # Process B starts from fresh in-memory state. Recovery must replay
+            # committed operations only, so the unmatched INTENT disappears with
+            # Process A and the order must be absent from recovered state.
             restarted = PaperRuntimeSupervisor(
                 runtime=PaperRealtimeLifecycle(ledger=PaperLedger(starting_equity=200.0)),
                 control_path=control_path,
                 durable_state_path=runtime_path,
             )
+            self.assertEqual(restarted._operations, [])
+            self.assertEqual(restarted.active_orders, ())
             recovered = restarted.recover()
             self.assertEqual(recovered.active_orders, ())
             self.assertEqual(recovered.terminal_orders, ())
