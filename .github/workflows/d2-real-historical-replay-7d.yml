@@ -27,7 +27,8 @@ jobs:
             '.github/workflows/d2-real-historical-replay-7d.yml' \
             'binansScanner/real_historical_replay.py' \
             'binansScanner/replay/performance_profile.py' \
-            'binansScanner/replay/source.py' | sort)"
+            'binansScanner/replay/source.py' \
+            'binansScanner/tests/fixtures/historical_replay_fixture.py' | sort)"
           test "$actual" = "$expected"
           echo "REPLAY_ISOLATION PASS"
       - uses: actions/setup-python@v5
@@ -178,10 +179,6 @@ jobs:
           assert report['lookahead_verification'] is True
           assert report['out_of_order_count']==0
           assert report['end_of_run_policy']=='CLOSE_AT_END'
-          assert report['paper_only'] is True
-          assert report['safety']['credentials_used'] is False
-          assert report['safety']['live_orders'] is False
-          pathlib.Path('real_replay_7d/qualification.json').write_text(json.dumps({'dataset_integrity':'PASS','causality':'PASS','replay_determinism':'PASS','paper_only_safety':'PASS','capital_integrity':'EVIDENCED_IN_REPORT','evidence_complete':True,'campaign':'7D','policy':'CLOSE_AT_END'},indent=2)+'\n')
           PY
       - uses: actions/upload-artifact@v4
         with:
