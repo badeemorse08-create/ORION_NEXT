@@ -28,7 +28,15 @@ jobs:
           test "$(git rev-parse d33da3e7af8f61e7091db0ff9971995a6619b01b)" = "d33da3e7af8f61e7091db0ff9971995a6619b01b"
           git merge-base --is-ancestor d33da3e7af8f61e7091db0ff9971995a6619b01b HEAD
           actual="$(git diff --name-only d33da3e7af8f61e7091db0ff9971995a6619b01b HEAD | sort)"
-          expected="$(printf '%s\n' 'tools/explosive_mover_challenge.py' '.github/workflows/d2-explosive-mover-challenge.yml' '.github/workflows/d2-actions-infra-probe.yml' '.github/workflows/d2-workflow-routing-diagnostic.yml' | sort)"
+          expected="$(printf '%s\n' \
+            'tools/explosive_mover_challenge.py' \
+            '.github/workflows/d2-explosive-mover-challenge.yml' \
+            '.github/workflows/d2-actions-infra-probe.yml' \
+            '.github/workflows/d2-workflow-routing-diagnostic.yml' \
+            '.github/workflows/d2-real-historical-replay-7d.yml' \
+            '.github/workflows/d2-report-schema-regression.yml' \
+            'binansScanner/tests/fixtures/historical_replay_fixture.py' \
+            'tests/test_d2_explosive_mover_report_schema.py' | sort)"
           test "$actual" = "$expected"
           echo "CHALLENGE_ISOLATION PASS"
           echo "REPLAY_BASELINE_UNCHANGED PASS"
