@@ -13,9 +13,12 @@ START = datetime(2025, 1, 1, tzinfo=timezone.utc)
 
 
 def _candle_rows(symbol_index: int, timeframe: str, count: int = 40):
-    step = {"1d": 86_400_000, "4h": 14_400_000, "1h": 3_600_000, "15m": 900_000}[timeframe]
+    step = {"5m": 300_000, "1d": 86_400_000, "4h": 14_400_000, "1h": 3_600_000, "15m": 900_000}[timeframe]
     rows = []
-    base_ms = int((START - timedelta(milliseconds=step * count * 2)).timestamp() * 1000)
+    if timeframe == "5m":
+        base_ms = int((START - timedelta(minutes=5 * (count + 12))).timestamp() * 1000)
+    else:
+        base_ms = int((START - timedelta(milliseconds=step * count * 2)).timestamp() * 1000)
     slopes = (0.75, -0.65, 0.95, -0.55, 0.45)
     slope = slopes[symbol_index % len(slopes)]
     for index in range(count):
@@ -36,6 +39,10 @@ def _candle_rows(symbol_index: int, timeframe: str, count: int = 40):
             )
         )
     return tuple(rows)
+
+
+def _five_minute_rows(symbol_index: int, count: int = 300):
+    return _candle_rows(symbol_index, "5m", count=count)
 
 
 def build_fixture_dataset() -> HistoricalDataset:
@@ -98,6 +105,10 @@ def build_fixture_dataset() -> HistoricalDataset:
         for symbol_index, symbol in enumerate(SYMBOLS)
         for timeframe in ("1d", "4h", "1h", "15m")
     }
+    candles.update({
+        (symbol, "5m"): _five_minute_rows(symbol_index)
+        for symbol_index, symbol in enumerate(SYMBOLS)
+    })
     metadata = ((START - timedelta(seconds=1), metadata_snapshot),)
     digest_payload = {
         "events": [
@@ -121,10 +132,10 @@ def build_fixture_dataset() -> HistoricalDataset:
         source="deterministic-replay-fixture",
         symbols=SYMBOLS,
         event_types=("candle_close",),
-        timeframes=("1d", "4h", "1h", "15m"),
+        timeframes=("1d", "4h", "1h", "15m", "5m"),
         timestamp_convention="ISO-8601 UTC",
         ordering_convention="timestamp,symbol,event_type,source_event_id",
-        dataset_version="fixture-v1",
+        dataset_version="fixture-v2",
         integrity_sha256=digest,
     )
     return HistoricalDataset(
