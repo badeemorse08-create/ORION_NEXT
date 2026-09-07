@@ -23,12 +23,18 @@ jobs:
           git merge-base --is-ancestor c6126e0b94781608147f321f737742f87f48bf2f HEAD
           actual="$(git diff --name-only c6126e0b94781608147f321f737742f87f48bf2f HEAD | sort)"
           expected="$(printf '%s\n' \
+            '.github/workflows/d2-actions-infra-probe.yml' \
+            '.github/workflows/d2-explosive-mover-challenge.yml' \
             '.github/workflows/d2-performance-profile.yml' \
             '.github/workflows/d2-real-historical-replay-7d.yml' \
+            '.github/workflows/d2-report-schema-regression.yml' \
+            '.github/workflows/d2-workflow-routing-diagnostic.yml' \
             'binansScanner/real_historical_replay.py' \
             'binansScanner/replay/performance_profile.py' \
             'binansScanner/replay/source.py' \
-            'binansScanner/tests/fixtures/historical_replay_fixture.py' | sort)"
+            'binansScanner/tests/fixtures/historical_replay_fixture.py' \
+            'tests/test_d2_explosive_mover_report_schema.py' \
+            'tools/explosive_mover_challenge.py' | sort)"
           test "$actual" = "$expected"
           echo "REPLAY_ISOLATION PASS"
       - uses: actions/setup-python@v5
