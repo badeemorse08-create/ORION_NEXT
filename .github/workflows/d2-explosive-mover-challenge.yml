@@ -144,13 +144,6 @@ jobs:
           import json
           from pathlib import Path
           report=json.loads(Path('challenge_report.json').read_text())
-          print("VALIDATION universe_completeness =", repr(report.get("universe_completeness")))
-          print("VALIDATION production_semantic_impact =", repr(report.get("production_semantic_impact")))
-          print("VALIDATION current_exchange_info_used =", repr(report.get("current_exchange_info_used")))
-          print("VALIDATION future_universe_information_used =", repr(report.get("future_universe_information_used")))
-          print("VALIDATION campaign_B =", repr(report.get("campaign_B")))
-          print("VALIDATION broad_market_complete_universe_test =", repr(report.get("broad_market_complete_universe_test")))
-
           expected = {
               "universe_completeness": "NOT_ESTABLISHED",
               "production_semantic_impact": "NONE",
@@ -159,24 +152,21 @@ jobs:
               "campaign_B": "BLOCKED",
               "broad_market_complete_universe_test": "BLOCKED",
           }
-
           actual = {key: report.get(key) for key in expected}
-
           print("VALIDATION_EXPECTED =", repr(expected))
           print("VALIDATION_ACTUAL   =", repr(actual))
-
+          for key in expected:
+              print(f"VALIDATION_FIELD {key}: expected={expected[key]!r} actual={actual[key]!r} type={type(actual[key]).__name__}")
           failures = [
               f"{key}: expected={expected[key]!r}, actual={actual[key]!r}"
               for key in expected
               if actual[key] != expected[key]
           ]
-
           if failures:
               print("REPORT_VALIDATION FAIL")
               for failure in failures:
                   print("VALIDATION_MISMATCH", failure)
               raise SystemExit(1)
-
           print("REPORT_VALIDATION PASS")
           print('DATASET_HASH', report['dataset_hash'])
           print('REPRESENTATIVE_CASE_KEYS', sorted(report['representative_cases']))
