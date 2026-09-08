@@ -19,7 +19,6 @@ from replay.runner import HistoricalPaperReplayRunner, ReplayConfig
 UTC = timezone.utc
 API = "https://data-api.binance.vision/api/v3/klines"
 
-# Selected historical challenge set only. This is NOT a reconstructed universe.
 CAMPAIGN_A_SYMBOLS = (
     "BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT",
     "AVAXUSDT", "LINKUSDT", "DOTUSDT", "LTCUSDT", "BCHUSDT", "UNIUSDT", "ATOMUSDT",
@@ -33,6 +32,14 @@ WARMUP_START = SIMULATION_START - timedelta(days=40)
 MOVE_THRESHOLDS = (10, 20, 30, 50, 70, 100, 150, 200)
 WINDOW_STEPS = {"5m": 1, "15m": 3, "30m": 6, "1h": 12, "4h": 48, "24h": 288}
 TF_MIN = {"5m": 5, "15m": 15, "30m": 30, "1h": 60, "4h": 240, "1d": 1440}
+REPORT_VALIDATION_CONTRACT = {
+    "universe_completeness": "NOT_ESTABLISHED",
+    "production_semantic_impact": "NONE",
+    "current_exchange_info_used": False,
+    "future_universe_information_used": False,
+    "campaign_B": "BLOCKED",
+    "broad_market_complete_universe_test": "BLOCKED",
+}
 
 
 def _ts(dt: datetime) -> int:
@@ -228,7 +235,7 @@ def _install_observer(runner: HistoricalPaperReplayRunner, path: Path) -> None:
         handle.flush()
         return result
     runner.opportunity.discover = wrapped
-    runner._challenge_observer_handle = handle  # type: ignore[attr-defined]
+    runner._challenge_observer_handle = handle
 
 
 def _close_observer(runner: HistoricalPaperReplayRunner) -> None:
@@ -253,6 +260,16 @@ def _event_time(row: dict | None, fallback_key: str = "timestamp") -> datetime |
         return datetime.fromisoformat(str(raw))
     except (TypeError, ValueError):
         return None
+
+
+def _validate_report_contract(report: dict) -> None:
+    actual = {key: report.get(key) for key in REPORT_VALIDATION_CONTRACT}
+    if actual != REPORT_VALIDATION_CONTRACT:
+        failures = [f"{key}: expected={REPORT_VALIDATION_CONTRACT[key]!r}, actual={actual[key]!r}" for key in REPORT_VALIDATION_CONTRACT if actual[key] != REPORT_VALIDATION_CONTRACT[key]]
+        raise AssertionError("report validation contract mismatch: " + "; ".join(failures))
+    for key in ("current_exchange_info_used", "future_universe_information_used"):
+        if type(report.get(key)) is not bool:
+            raise AssertionError(f"report validation contract type mismatch: {key} must be bool")
 
 
 def build_evidence(output: Path, dataset: HistoricalDataset, validation: dict, detections: list[dict], base_report: dict) -> dict:
@@ -300,9 +317,7 @@ def build_evidence(output: Path, dataset: HistoricalDataset, validation: dict, d
         actionable_info = None
         for cycle in cycles:
             ct = _event_time(cycle, "refresh_timestamp")
-            if ct is None:
-                continue
-            if ct < threshold_dt:
+            if ct is None or ct < threshold_dt:
                 continue
             cand = next((c for c in cycle.get("broad_candidates", []) if c.get("symbol") == symbol), None)
             if cand and cand.get("entry_allowed") is True and cand.get("entry_state") in {"A", "A+"}:
@@ -365,9 +380,11 @@ def build_evidence(output: Path, dataset: HistoricalDataset, validation: dict, d
         "failure_case": next((c for c in causal if c["stage_at_threshold"] in {"NOT_RECALLED", "EVALUATED_NOT_ACTIONABLE"}), None),
     }
 
-    report = {"title": "D2 CORRECTED EXPLOSIVE-MOVER CHALLENGE REPORT", "status": "COMPLETED", "challenge_symbol_count": len(dataset.manifest.symbols), "challenge_symbols": list(dataset.manifest.symbols), "universe_completeness": "NOT_ESTABLISHED", "scope_statement": "This test validates selected historical explosive movers only. It does not establish complete Binance-market coverage.", "simulation_interval": f"{SIMULATION_START.isoformat()}/{SIMULATION_END.isoformat()}", "dataset_hash": dataset.manifest.integrity_sha256, "base_replay_report": base_report, "production_semantic_impact": "NONE", "current_exchange_info_used": False, "future_universe_information_used": False, "campaign_B": "BLOCKED", "broad_market_complete_universe_test": "BLOCKED", "latency_methodology": {"movement_latency": "threshold_cross_timestamp - first_observable_timestamp", "detection_latency": "discovery_timestamp - threshold_cross_timestamp; signed; negative means discovered_before_threshold", "decision_latency": "first_actionable_timestamp - discovery_timestamp", "entry_latency": "entry_decision_timestamp to order_timestamp; null when NOT_ENTERED"}, "threshold_window_statistics": table, "causal_traces": causal, "representative_cases": reps}
+    report = {"title": "D2 CORRECTED EXPLOSIVE-MOVER CHALLENGE REPORT", "status": "COMPLETED", "challenge_symbol_count": len(dataset.manifest.symbols), "challenge_symbols": list(dataset.manifest.symbols), **REPORT_VALIDATION_CONTRACT, "scope_statement": "This test validates selected historical explosive movers only. It does not establish complete Binance-market coverage.", "simulation_interval": f"{SIMULATION_START.isoformat()}/{SIMULATION_END.isoformat()}", "dataset_hash": dataset.manifest.integrity_sha256, "base_replay_report": base_report, "latency_methodology": {"movement_latency": "threshold_cross_timestamp - first_observable_timestamp", "detection_latency": "discovery_timestamp - threshold_cross_timestamp; signed; negative means discovered_before_threshold", "decision_latency": "first_actionable_timestamp - discovery_timestamp", "entry_latency": "entry_decision_timestamp to order_timestamp; null when NOT_ENTERED"}, "threshold_window_statistics": table, "causal_traces": causal, "representative_cases": reps}
+    _validate_report_contract(report)
     report_bytes = json.dumps(report, indent=2, sort_keys=True, default=str).encode("utf-8")
     (output / "challenge_report.json").write_bytes(report_bytes)
+    _validate_report_contract(json.loads((output / "challenge_report.json").read_text(encoding="utf-8")))
     (output / "causal_traces.json").write_text(json.dumps(causal, indent=2, sort_keys=True, default=str) + "\n", encoding="utf-8")
     (output / "threshold_window_statistics.json").write_text(json.dumps(table, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     (output / "detected_movers.json").write_text(json.dumps(detections, indent=2, sort_keys=True) + "\n", encoding="utf-8")
