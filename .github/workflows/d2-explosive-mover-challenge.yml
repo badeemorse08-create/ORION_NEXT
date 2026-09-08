@@ -128,8 +128,6 @@ jobs:
 
       - name: Validate machine-readable report
         working-directory: explosive_mover_challenge
-        env:
-          PYTHONPATH: ${{ github.workspace }}/binansScanner:${{ github.workspace }}
         run: |
           set -euo pipefail
           test -f dataset/manifest.json
@@ -146,10 +144,16 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-          from tools.explosive_mover_challenge import REPORT_VALIDATION_CONTRACT
 
+          expected = {
+              "universe_completeness": "NOT_ESTABLISHED",
+              "production_semantic_impact": "NONE",
+              "current_exchange_info_used": False,
+              "future_universe_information_used": False,
+              "campaign_B": "BLOCKED",
+              "broad_market_complete_universe_test": "BLOCKED",
+          }
           report = json.loads(Path('challenge_report.json').read_text(encoding='utf-8'))
-          expected = dict(REPORT_VALIDATION_CONTRACT)
           actual = {key: report.get(key) for key in expected}
           print('VALIDATION_EXPECTED =', repr(expected))
           print('VALIDATION_ACTUAL   =', repr(actual))
