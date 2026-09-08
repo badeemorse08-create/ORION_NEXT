@@ -128,7 +128,10 @@ jobs:
 
       - name: Validate machine-readable report
         working-directory: explosive_mover_challenge
+        env:
+          PYTHONPATH: ${{ github.workspace }}/binansScanner:${{ github.workspace }}
         run: |
+          set -euo pipefail
           test -f dataset/manifest.json
           test -f detected_movers.json
           test -f pipeline_observations.jsonl
@@ -143,31 +146,27 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-          report=json.loads(Path('challenge_report.json').read_text())
-          expected = {
-              "universe_completeness": "NOT_ESTABLISHED",
-              "production_semantic_impact": "NONE",
-              "current_exchange_info_used": False,
-              "future_universe_information_used": False,
-              "campaign_B": "BLOCKED",
-              "broad_market_complete_universe_test": "BLOCKED",
-          }
+          from tools.explosive_mover_challenge import REPORT_VALIDATION_CONTRACT
+
+          report = json.loads(Path('challenge_report.json').read_text(encoding='utf-8'))
+          expected = dict(REPORT_VALIDATION_CONTRACT)
           actual = {key: report.get(key) for key in expected}
-          print("VALIDATION_EXPECTED =", repr(expected))
-          print("VALIDATION_ACTUAL   =", repr(actual))
+          print('VALIDATION_EXPECTED =', repr(expected))
+          print('VALIDATION_ACTUAL   =', repr(actual))
           for key in expected:
-              print(f"VALIDATION_FIELD {key}: expected={expected[key]!r} actual={actual[key]!r} type={type(actual[key]).__name__}")
-          failures = [
-              f"{key}: expected={expected[key]!r}, actual={actual[key]!r}"
-              for key in expected
-              if actual[key] != expected[key]
-          ]
-          if failures:
-              print("REPORT_VALIDATION FAIL")
-              for failure in failures:
-                  print("VALIDATION_MISMATCH", failure)
-              raise SystemExit(1)
-          print("REPORT_VALIDATION PASS")
+              value = actual[key]
+              print(f'VALIDATION_FIELD {key}: expected={expected[key]!r} actual={value!r} type={type(value).__name__}')
+          if actual != expected:
+              failures = [
+                  f'{key}: expected={expected[key]!r}, actual={actual[key]!r}'
+                  for key in expected
+                  if actual[key] != expected[key]
+              ]
+              raise SystemExit('REPORT_VALIDATION FAIL: ' + '; '.join(failures))
+          for key in ('current_exchange_info_used', 'future_universe_information_used'):
+              if type(actual[key]) is not bool:
+                  raise SystemExit(f'REPORT_VALIDATION FAIL: {key} must be bool')
+          print('REPORT_VALIDATION PASS')
           print('DATASET_HASH', report['dataset_hash'])
           print('REPRESENTATIVE_CASE_KEYS', sorted(report['representative_cases']))
           PY
