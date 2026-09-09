@@ -128,8 +128,6 @@ jobs:
 
       - name: Validate machine-readable report
         working-directory: explosive_mover_challenge
-        env:
-          PYTHONPATH: ${{ github.workspace }}/binansScanner:${{ github.workspace }}
         run: |
           set -euo pipefail
           test -f dataset/manifest.json
@@ -146,17 +144,31 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-          from tools.explosive_mover_challenge import REPORT_VALIDATION_CONTRACT, _validate_report_contract
 
           report = json.loads(Path('challenge_report.json').read_text(encoding='utf-8'))
-          _validate_report_contract(report)
-          required = set(REPORT_VALIDATION_CONTRACT)
-          if set(report) < required:
-              raise SystemExit('REPORT_VALIDATION FAIL: missing canonical contract keys')
-          if type(report['current_exchange_info_used']) is not bool:
-              raise SystemExit('REPORT_VALIDATION FAIL: current_exchange_info_used must be bool')
-          if type(report['future_universe_information_used']) is not bool:
-              raise SystemExit('REPORT_VALIDATION FAIL: future_universe_information_used must be bool')
+          expected = {
+              'universe_completeness': 'NOT_ESTABLISHED',
+              'production_semantic_impact': 'NONE',
+              'current_exchange_info_used': False,
+              'future_universe_information_used': False,
+              'campaign_B': 'BLOCKED',
+              'broad_market_complete_universe_test': 'BLOCKED',
+          }
+          actual = {key: report.get(key) for key in expected}
+          print('REPORT_VALIDATION_EXPECTED', repr(expected))
+          print('REPORT_VALIDATION_ACTUAL', repr(actual))
+          failures = []
+          for key, value in expected.items():
+              if actual[key] != value:
+                  failures.append(f'{key}: expected={value!r}, actual={actual[key]!r}')
+          for key in ('current_exchange_info_used', 'future_universe_information_used'):
+              if type(report.get(key)) is not bool:
+                  failures.append(f'{key}: expected bool, actual_type={type(report.get(key)).__name__}')
+          missing = set(expected) - set(report)
+          if missing:
+              failures.append(f'missing canonical contract keys: {sorted(missing)!r}')
+          if failures:
+              raise SystemExit('REPORT_VALIDATION FAIL: ' + '; '.join(failures))
           print('REPORT_VALIDATION PASS')
           print('DATASET_HASH', report['dataset_hash'])
           print('REPRESENTATIVE_CASE_KEYS', sorted(report['representative_cases']))
