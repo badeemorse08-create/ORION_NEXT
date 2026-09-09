@@ -42,4 +42,4 @@ jobs:
       - name: Probe complete
         run: echo "INFRA_PROBE_PASS"
 
-# Fresh-run trigger: non-semantic comment only; no strategy or threshold change.
+# Fresh-run trigger: non-semantic comment only; confirms public-repo Actions scheduling.
