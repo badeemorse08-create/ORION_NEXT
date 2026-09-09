@@ -128,6 +128,8 @@ jobs:
 
       - name: Validate machine-readable report
         working-directory: explosive_mover_challenge
+        env:
+          PYTHONPATH: ${{ github.workspace }}/binansScanner:${{ github.workspace }}
         run: |
           set -euo pipefail
           test -f dataset/manifest.json
@@ -144,32 +146,17 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
+          from tools.explosive_mover_challenge import REPORT_VALIDATION_CONTRACT, _validate_report_contract
 
-          expected = {
-              "universe_completeness": "NOT_ESTABLISHED",
-              "production_semantic_impact": "NONE",
-              "current_exchange_info_used": False,
-              "future_universe_information_used": False,
-              "campaign_B": "BLOCKED",
-              "broad_market_complete_universe_test": "BLOCKED",
-          }
           report = json.loads(Path('challenge_report.json').read_text(encoding='utf-8'))
-          actual = {key: report.get(key) for key in expected}
-          print('VALIDATION_EXPECTED =', repr(expected))
-          print('VALIDATION_ACTUAL   =', repr(actual))
-          for key in expected:
-              value = actual[key]
-              print(f'VALIDATION_FIELD {key}: expected={expected[key]!r} actual={value!r} type={type(value).__name__}')
-          if actual != expected:
-              failures = [
-                  f'{key}: expected={expected[key]!r}, actual={actual[key]!r}'
-                  for key in expected
-                  if actual[key] != expected[key]
-              ]
-              raise SystemExit('REPORT_VALIDATION FAIL: ' + '; '.join(failures))
-          for key in ('current_exchange_info_used', 'future_universe_information_used'):
-              if type(actual[key]) is not bool:
-                  raise SystemExit(f'REPORT_VALIDATION FAIL: {key} must be bool')
+          _validate_report_contract(report)
+          required = set(REPORT_VALIDATION_CONTRACT)
+          if set(report) < required:
+              raise SystemExit('REPORT_VALIDATION FAIL: missing canonical contract keys')
+          if type(report['current_exchange_info_used']) is not bool:
+              raise SystemExit('REPORT_VALIDATION FAIL: current_exchange_info_used must be bool')
+          if type(report['future_universe_information_used']) is not bool:
+              raise SystemExit('REPORT_VALIDATION FAIL: future_universe_information_used must be bool')
           print('REPORT_VALIDATION PASS')
           print('DATASET_HASH', report['dataset_hash'])
           print('REPRESENTATIVE_CASE_KEYS', sorted(report['representative_cases']))
