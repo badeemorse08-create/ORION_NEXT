@@ -369,7 +369,7 @@ def build_evidence(output: Path, dataset: HistoricalDataset, validation: dict, d
         for window in WINDOW_STEPS:
             subset = [c for c in causal if c["threshold_pct"] == threshold and c["window"] == window]
             table.append({
-                "threshold_pct": threshold, "window": window, "candidate_count": len(subset), "historically_validated_count": sum(1 for c in subset if c["historical_validation"]["historical_existence"] and c["historical_validation"]["historical_period_trade"]), "eligible_count": sum(1 for c in subset if c["eligibility_result"] == "ELIGIBLE"), "recalled_count": sum(1 for c in subset if c["recall_result"]), "evaluated_count": sum(1 for c in subset if c["deep_evaluation"]), "actionable_count": sum(1 for c in subset if c["actionability"] is True), "entries": sum(1 for c in subset if c["entry_status"] == "ENTERED"), "fills": sum(1 for c in subset if c["fill_timestamp"] is not None), "exits": sum(1 for c in subset if c["exit_timestamp"] is not None), "captured_count": sum(1 for c in subset if c["realized_return_pct"] is not None and c["realized_return_pct"] > 0), "missed_count": sum(1 for c in subset if c["stage_at_threshold"] not in {"FILLED", "EXITED"}),
+                "threshold_pct": threshold, "window": window, "candidate_count": len(subset), "historically_validated_count": sum(1 for c in subset if c["historical_validation"]["historical_existence"] and c["historical_validation"]["historical_period_trade"]), "eligible_count": sum(1 for c in subset if c["eligibility_result"] == "ELIGIBLE"), "recalled_count": sum(1 for c in subset if c["recall_result"]), "evaluated_count": sum(1 for c in subset if c["deep_evaluation"]), "actionable_count": sum(1 for c in subset if c["actionability"] is True), "entries": sum(1 for c in subset if c["entry_status"] == "ENTERED"), "fills": sum(1 for c in subset if c["fill_timestamp"] is not None), "exits": sum(1 for c in subset if c["exit_timestamp"] is not None), "captured_count": sum(1 for c in subset if c["realized_return_pct"] is not None and c["realized_return_pct"] > 0), "missed_count": sum(1 for c in subset if c["stage_at_threshold"] not in {"FILLED", "EXITED"}},
             })
 
     reps = {
@@ -415,6 +415,14 @@ def main() -> int:
         base_report = asyncio.run(runner.run_replay(dataset, replay_config=cfg))
     finally:
         _close_observer(runner)
+
+    if not isinstance(base_report, dict):
+        raise RuntimeError(f"historical replay returned invalid campaign report type: {type(base_report).__name__}")
+    campaign_report_path = replay_out / "campaign_report.json"
+    campaign_report_path.write_text(json.dumps(base_report, indent=2, sort_keys=True, default=str) + "\n", encoding="utf-8")
+    round_trip_report = json.loads(campaign_report_path.read_text(encoding="utf-8"))
+    if round_trip_report != base_report:
+        raise RuntimeError("historical replay campaign_report.json round-trip validation failed")
 
     report = build_evidence(output, dataset, acquired["validation"], detections, base_report)
     sha_lines = []
