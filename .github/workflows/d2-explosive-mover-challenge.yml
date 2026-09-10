@@ -130,6 +130,10 @@ jobs:
         working-directory: explosive_mover_challenge
         run: |
           set -euo pipefail
+          echo "VALIDATION_CWD $(pwd)"
+          echo "VALIDATION_TOP_LEVEL"
+          find . -maxdepth 2 -type f -print | sort
+          echo "VALIDATION_REQUIRED_FILES"
           for required in \
             dataset/manifest.json \
             detected_movers.json \
@@ -141,9 +145,17 @@ jobs:
             threshold_window_statistics.json \
             historical_validation.json \
             challenge_manifest.json; do
-            test -f "$required"
+            if test -f "$required"; then
+              echo "REQUIRED_FILE PASS $required $(wc -c < "$required")"
+            else
+              echo "REQUIRED_FILE FAIL $required"
+              echo "--- parent listing ---"
+              ls -la "$(dirname "$required")" || true
+              echo "--- recursive listing ---"
+              find . -maxdepth 3 -print | sort
+              exit 1
+            fi
           done
-          echo "REPORT_FILE_BYTES $(wc -c < challenge_report.json)"
           python -m json.tool challenge_report.json > /dev/null
           echo "REPORT_JSON_PARSE PASS"
           python -u - <<'PY'
@@ -158,7 +170,6 @@ jobs:
               report = json.loads(report_path.read_text(encoding='utf-8'))
               print('REPORT_VALIDATE_TYPE', type(report).__name__, flush=True)
               print('REPORT_VALIDATE_KEYS', sorted(report.keys()), flush=True)
-
               expected = {
                   'universe_completeness': 'NOT_ESTABLISHED',
                   'production_semantic_impact': 'NONE',
@@ -170,22 +181,18 @@ jobs:
               actual = {key: report.get(key) for key in expected}
               print('REPORT_VALIDATION_EXPECTED', repr(expected), flush=True)
               print('REPORT_VALIDATION_ACTUAL', repr(actual), flush=True)
-
               failures = []
               for key, value in expected.items():
                   if key not in report:
                       failures.append(f'missing key: {key}')
                   elif report[key] != value:
                       failures.append(f'{key}: expected={value!r}, actual={report[key]!r}')
-
               for key in ('current_exchange_info_used', 'future_universe_information_used'):
                   if key in report and type(report[key]) is not bool:
                       failures.append(f'{key}: expected bool, actual_type={type(report[key]).__name__}')
-
               if failures:
                   print('REPORT_VALIDATION_FAIL', '; '.join(failures), file=sys.stderr, flush=True)
                   raise SystemExit(1)
-
               print('REPORT_VALIDATION PASS', flush=True)
               print('DATASET_HASH', report['dataset_hash'], flush=True)
               print('REPRESENTATIVE_CASE_KEYS', sorted(report['representative_cases']), flush=True)
