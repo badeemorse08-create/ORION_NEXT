@@ -130,48 +130,69 @@ jobs:
         working-directory: explosive_mover_challenge
         run: |
           set -euo pipefail
-          test -f dataset/manifest.json
-          test -f detected_movers.json
-          test -f pipeline_observations.jsonl
-          test -f replay/campaign_report.json
-          test -f replay/events.jsonl
-          test -f challenge_report.json
-          test -f causal_traces.json
-          test -f threshold_window_statistics.json
-          test -f historical_validation.json
-          test -f challenge_manifest.json
+          for required in \
+            dataset/manifest.json \
+            detected_movers.json \
+            pipeline_observations.jsonl \
+            replay/campaign_report.json \
+            replay/events.jsonl \
+            challenge_report.json \
+            causal_traces.json \
+            threshold_window_statistics.json \
+            historical_validation.json \
+            challenge_manifest.json; do
+            test -f "$required"
+          done
+          echo "REPORT_FILE_BYTES $(wc -c < challenge_report.json)"
           python -m json.tool challenge_report.json > /dev/null
-          python - <<'PY'
+          echo "REPORT_JSON_PARSE PASS"
+          python -u - <<'PY'
           import json
+          import sys
+          import traceback
           from pathlib import Path
 
-          report = json.loads(Path('challenge_report.json').read_text(encoding='utf-8'))
-          expected = {
-              'universe_completeness': 'NOT_ESTABLISHED',
-              'production_semantic_impact': 'NONE',
-              'current_exchange_info_used': False,
-              'future_universe_information_used': False,
-              'campaign_B': 'BLOCKED',
-              'broad_market_complete_universe_test': 'BLOCKED',
-          }
-          actual = {key: report.get(key) for key in expected}
-          print('REPORT_VALIDATION_EXPECTED', repr(expected))
-          print('REPORT_VALIDATION_ACTUAL', repr(actual))
-          failures = []
-          for key, value in expected.items():
-              if actual[key] != value:
-                  failures.append(f'{key}: expected={value!r}, actual={actual[key]!r}')
-          for key in ('current_exchange_info_used', 'future_universe_information_used'):
-              if type(report.get(key)) is not bool:
-                  failures.append(f'{key}: expected bool, actual_type={type(report.get(key)).__name__}')
-          missing = set(expected) - set(report)
-          if missing:
-              failures.append(f'missing canonical contract keys: {sorted(missing)!r}')
-          if failures:
-              raise SystemExit('REPORT_VALIDATION FAIL: ' + '; '.join(failures))
-          print('REPORT_VALIDATION PASS')
-          print('DATASET_HASH', report['dataset_hash'])
-          print('REPRESENTATIVE_CASE_KEYS', sorted(report['representative_cases']))
+          try:
+              report_path = Path('challenge_report.json')
+              print('REPORT_VALIDATE_PATH', report_path.resolve(), flush=True)
+              report = json.loads(report_path.read_text(encoding='utf-8'))
+              print('REPORT_VALIDATE_TYPE', type(report).__name__, flush=True)
+              print('REPORT_VALIDATE_KEYS', sorted(report.keys()), flush=True)
+
+              expected = {
+                  'universe_completeness': 'NOT_ESTABLISHED',
+                  'production_semantic_impact': 'NONE',
+                  'current_exchange_info_used': False,
+                  'future_universe_information_used': False,
+                  'campaign_B': 'BLOCKED',
+                  'broad_market_complete_universe_test': 'BLOCKED',
+              }
+              actual = {key: report.get(key) for key in expected}
+              print('REPORT_VALIDATION_EXPECTED', repr(expected), flush=True)
+              print('REPORT_VALIDATION_ACTUAL', repr(actual), flush=True)
+
+              failures = []
+              for key, value in expected.items():
+                  if key not in report:
+                      failures.append(f'missing key: {key}')
+                  elif report[key] != value:
+                      failures.append(f'{key}: expected={value!r}, actual={report[key]!r}')
+
+              for key in ('current_exchange_info_used', 'future_universe_information_used'):
+                  if key in report and type(report[key]) is not bool:
+                      failures.append(f'{key}: expected bool, actual_type={type(report[key]).__name__}')
+
+              if failures:
+                  print('REPORT_VALIDATION_FAIL', '; '.join(failures), file=sys.stderr, flush=True)
+                  raise SystemExit(1)
+
+              print('REPORT_VALIDATION PASS', flush=True)
+              print('DATASET_HASH', report['dataset_hash'], flush=True)
+              print('REPRESENTATIVE_CASE_KEYS', sorted(report['representative_cases']), flush=True)
+          except BaseException as exc:
+              print('REPORT_VALIDATION_EXCEPTION', type(exc).__name__, str(exc), file=sys.stderr, flush=True)
+              traceback.print_exc()
+              raise
           PY
 
       - name: Freeze artifact checksums
