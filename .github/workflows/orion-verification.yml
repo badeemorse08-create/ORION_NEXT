@@ -2,10 +2,25 @@ name: ORION verification
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - developer5/**
+      - developer1/**
+      - developer7/**
+      - integration/**
+      - verification/**
   pull_request:
-    branches: [main]
+    branches:
+      - main
+      - integration/**
+      - developer7/**
+      - developer1/**
   workflow_dispatch:
+    inputs:
+      source_sha:
+        description: "Exact commit SHA to verify"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -30,12 +45,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
-            expected_sha="${{ github.event.pull_request.head.sha }}"
-          else
-            expected_sha="$GITHUB_SHA"
-          fi
-          printf 'EXPECTED_SHA=%s\n' "$expected_sha"
+          case "$GITHUB_EVENT_NAME" in
+            pull_request)
+              expected_sha="${{ github.event.pull_request.head.sha }}"
+              ;;
+            workflow_dispatch)
+              expected_sha="${{ inputs.source_sha }}"
+              ;;
+            *)
+              expected_sha="$GITHUB_SHA"
+              ;;
+          esac
+          test -n "$expected_sha"
+          printf 'EVENT=%s\nEXPECTED_SHA=%s\n' "$GITHUB_EVENT_NAME" "$expected_sha"
           printf 'expected_sha=%s\n' "$expected_sha" >> "$GITHUB_OUTPUT"
 
       - name: Checkout exact source revision
@@ -96,6 +118,7 @@ jobs:
             printf 'workflow=ORION verification\n'
             printf 'run_id=%s\n' "$GITHUB_RUN_ID"
             printf 'trigger=%s\n' "$GITHUB_EVENT_NAME"
+            printf 'ref=%s\n' "$GITHUB_REF"
             printf 'expected_sha=%s\n' "$expected"
             printf 'actual_checkout_sha=%s\n' "$actual"
             printf 'test_result=PASS\n'
@@ -110,5 +133,3 @@ jobs:
           name: orion-verification-evidence-${{ github.run_id }}
           path: ${{ runner.temp }}/orion-verification-evidence
           if-no-files-found: error
-
-      # Bootstrap touch: force a fresh post-merge main push verification run.

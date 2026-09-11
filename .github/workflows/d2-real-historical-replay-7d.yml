@@ -1,0 +1,193 @@
+name: D2 REAL Historical Replay 7D
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [d2/real-historical-replay-7d-20260902, d2/real-historical-replay-execution-20260902, d2/real-historical-replay-retry2-20260904]
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Verify replay baseline and isolation
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$(git rev-parse c6126e0b94781608147f321f737742f87f48bf2f)" = "c6126e0b94781608147f321f737742f87f48bf2f"
+          git merge-base --is-ancestor c6126e0b94781608147f321f737742f87f48bf2f HEAD
+          actual="$(git diff --name-only c6126e0b94781608147f321f737742f87f48bf2f HEAD | sort)"
+          expected="$(printf '%s\n' \
+            '.github/workflows/d2-actions-infra-probe.yml' \
+            '.github/workflows/d2-explosive-mover-challenge.yml' \
+            '.github/workflows/d2-performance-profile.yml' \
+            '.github/workflows/d2-real-historical-replay-7d.yml' \
+            '.github/workflows/d2-report-schema-regression.yml' \
+            '.github/workflows/d2-workflow-routing-diagnostic.yml' \
+            'binansScanner/real_historical_replay.py' \
+            'binansScanner/replay/performance_profile.py' \
+            'binansScanner/replay/source.py' \
+            'binansScanner/tests/fixtures/historical_replay_fixture.py' \
+            'tests/test_d2_explosive_mover_report_schema.py' \
+            'tools/explosive_mover_challenge.py' | sort)"
+          test "$actual" = "$expected"
+          echo "REPLAY_ISOLATION PASS"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        working-directory: binansScanner
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -r requirements.txt
+          python -m pip install numpy pandas pandas-ta python-binance
+          python -m pip check
+          python -c "import numpy, pandas, pandas_ta, binance; print('DEPENDENCIES_OK', numpy.__version__, pandas.__version__)"
+      - name: Compile
+        working-directory: binansScanner
+        run: python -m compileall -q .
+      - name: Acquire historical dataset
+        working-directory: binansScanner
+        env:
+          PYTHONPATH: ${{ github.workspace }}/binansScanner:${{ github.workspace }}
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from real_historical_replay import acquire
+          root = Path('real_replay_7d') / 'dataset'
+          acquire(root)
+          print(f'DATASET_ACQUIRED {root}')
+          PY
+      - name: Dataset integrity
+        working-directory: binansScanner
+        env:
+          PYTHONPATH: ${{ github.workspace }}/binansScanner:${{ github.workspace }}
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          from real_historical_replay import SYMBOLS
+          from replay.dataset import HistoricalDataset
+          root = Path('real_replay_7d/dataset')
+          dataset = HistoricalDataset.from_directory(root)
+          manifest = json.loads((root / 'manifest.json').read_text())
+          assert tuple(sorted(manifest['symbols'])) == tuple(sorted(SYMBOLS))
+          assert manifest['completeness_status'] == 'PASS'
+          assert manifest['universe_policy'].startswith('fixed 20-symbol historical universe')
+          assert manifest['acquisition_method'].startswith('public unauthenticated Binance market-data endpoint')
+          assert dataset.manifest.integrity_sha256 == manifest['integrity_sha256']
+          assert manifest['integrity_sha256'] == '9ed783f437152af77c0ac3e6694b6b1b47e3258c2b24f3dfcf0a81027dcd89e7'
+          print('DATASET_INTEGRITY PASS')
+          print('DATASET_HASH', dataset.manifest.integrity_sha256)
+          print('HISTORICAL_UNIVERSE_SIZE', len(dataset.manifest.symbols))
+          print('NO_CURRENT_OR_FUTURE_UNIVERSE_DISCOVERY PASS')
+          PY
+      - name: Fast Recall breadth regression
+        working-directory: binansScanner
+        env:
+          PYTHONPATH: ${{ github.workspace }}/binansScanner:${{ github.workspace }}
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from replay.clock import ReplayClock
+          from replay.dataset import HistoricalDataset
+          from replay.source import HistoricalMarketDataSource
+          from services.opportunity_discovery import MarketUniverseDiscovery, OpportunityConfig, OpportunityDiscovery
+          from services.scalping_pipeline import FastRecall
+          from real_historical_replay import SYMBOLS
+
+          dataset = HistoricalDataset.from_directory(Path('real_replay_7d/dataset'))
+          clock = ReplayClock(dataset.start, 600.0)
+          source = HistoricalMarketDataSource(dataset, clock)
+          config = OpportunityConfig(default_top_n=10_000, refresh_interval_seconds=0.0, cache_ttl_seconds=0.0)
+          universe = MarketUniverseDiscovery(source, config)
+          universe_candidates = universe.discover()
+          discovery = OpportunityDiscovery(universe, source, config, clock=clock.monotonic)
+          eligible_set = discovery.discover(top_n=10_000)
+          recall = FastRecall().recall(eligible_set.candidates, broad_limit=100)
+
+          lane_counts = dict(recall.counts)
+          union_size = len(set(symbol for symbol, _ in recall.provenance))
+          active_top_n = 10
+          broad_pool_top_n = 100
+
+          print('HISTORICAL_UNIVERSE_SIZE', len(universe_candidates))
+          print('ELIGIBLE_DISCOVERY_CANDIDATES', len(eligible_set.candidates))
+          print('FAST_RECALL_LANE_COUNTS', lane_counts)
+          print('FAST_RECALL_UNION_SIZE', union_size)
+          print('FINAL_RECALLED_CANDIDATE_COUNT', len(recall.candidates))
+          print('ACTIVE_TOP_N', active_top_n)
+          print('BROAD_POOL_TOP_N', broad_pool_top_n)
+          print('UNIVERSE_STATIC_MANIFEST_MATCH', set(c.symbol for c in universe_candidates) == set(SYMBOLS))
+
+          assert len(universe_candidates) == len(SYMBOLS)
+          assert set(c.symbol for c in universe_candidates) == set(SYMBOLS)
+          assert len(eligible_set.candidates) > active_top_n, 'eligible discovery candidates must exceed active_top_n'
+          assert union_size == len(recall.candidates)
+          assert len(recall.candidates) > active_top_n, 'fast recall must produce a candidate pool above active_top_n'
+          assert len(recall.candidates) <= broad_pool_top_n
+          print('FAST_RECALL_BREADTH_REGRESSION PASS')
+          PY
+      - name: REAL 7D Replay
+        working-directory: binansScanner
+        env:
+          PYTHONPATH: ${{ github.workspace }}/binansScanner:${{ github.workspace }}
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from real_historical_replay import run
+          report = run(Path('real_replay_7d/dataset'), Path('real_replay_7d/run'))
+          print('REAL_7D_REPLAY_COMPLETE', report['simulation_start'], report['simulation_end'])
+          print('PROCESSED_EVENTS', report['processed_event_count'])
+          print('ORDERS', report['orders'])
+          print('FILLS', report['fills'])
+          PY
+      - name: Determinism gate
+        working-directory: binansScanner
+        env:
+          PYTHONPATH: ${{ github.workspace }}/binansScanner:${{ github.workspace }}
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          from real_historical_replay import run
+          root=pathlib.Path('real_replay_7d/dataset')
+          run(root,pathlib.Path('real_replay_7d/run_b'))
+          a=json.loads(pathlib.Path('real_replay_7d/run/campaign_report.json').read_text())
+          b=json.loads(pathlib.Path('real_replay_7d/run_b/campaign_report.json').read_text())
+          keys=('dataset_hash','processed_event_count','duplicate_event_count','out_of_order_count','orders','fills','large_move_count','capital_state','lookahead_verification','end_of_run_policy')
+          assert all(a[k]==b[k] for k in keys)
+          assert a['lookahead_verification'] is True and a['out_of_order_count']==0
+          assert a['end_of_run_policy']=='CLOSE_AT_END' and a['paper_only'] is True
+          assert a['safety']['credentials_used'] is False and a['safety']['live_orders'] is False
+          pathlib.Path('real_replay_7d/determinism.json').write_text(json.dumps({'result':'PASS','core_metrics_equal':True},indent=2)+'\n')
+          PY
+      - name: Clean tree
+        run: |
+          test -z "$(git diff --name-only)"
+          test -z "$(git diff --cached --name-only)"
+      - name: Finalize qualification evidence
+        working-directory: binansScanner
+        run: |
+          test -f real_replay_7d/dataset/manifest.json
+          test -f real_replay_7d/run/campaign_report.json
+          test -f real_replay_7d/determinism.json
+          python - <<'PY'
+          import json, pathlib
+          report=json.loads(pathlib.Path('real_replay_7d/run/campaign_report.json').read_text())
+          det=json.loads(pathlib.Path('real_replay_7d/determinism.json').read_text())
+          assert det['result']=='PASS'
+          assert report['lookahead_verification'] is True
+          assert report['out_of_order_count']==0
+          assert report['end_of_run_policy']=='CLOSE_AT_END'
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: d2-real-historical-replay-7d
+          path: binansScanner/real_replay_7d/
+          if-no-files-found: error

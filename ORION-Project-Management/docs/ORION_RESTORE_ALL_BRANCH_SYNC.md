@@ -1,7 +1,11 @@
 # ORION Restore — ALL Branch Synchronization Contract
 
+> **ARCHIVED / HISTORICAL RECORD — NOT AN ACTIVE OPERATIONAL PROCEDURE**
+>
+> This document records the former Restore/MAIN/ALL synchronization architecture. The legacy synchronization and restore tools described below have been retired. Current development uses GitHub as the source of truth and the current repository/integration verification workflow. Do not use the commands, paths, or tool list in this historical document as an active operating procedure.
+
 الإصدار: 2.3
-الحالة: MAIN + FAST ISOLATED ALL + INDEPENDENT MAIN PARITY VERIFIER
+الحالة: ARCHIVED — HISTORICAL RECORD
 
 ## الهدف
 
