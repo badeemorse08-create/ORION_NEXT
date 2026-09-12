@@ -14,16 +14,11 @@ SYMBOL = "AAAUSDT"
 
 
 def _history_payload():
-    base_timestamp_ms = 1_700_000_000_000
-    day_ms = 86_400_000
-    return [[
-        base_timestamp_ms + index * day_ms,
-        str(100 + index),
-        str(101 + index),
-        str(99 + index),
-        str(100 + index),
-        "10",
-    ] for index in range(32)]
+    base_ts = 1_700_000_000_000
+    return [
+        [base_ts + index * 86_400_000, str(100 + index - 0.5), str(100 + index + 0.5), str(100 + index - 1.0), str(100 + index), "10"]
+        for index in range(32)
+    ]
 
 
 class _Response:
@@ -56,7 +51,7 @@ class _FakeSupervisor:
         self.runtime = runtime
 
 
-class ResilientBootstrapRunnerIntegrationCurrentTests(unittest.TestCase):
+class ResilientBootstrapRunnerIntegrationTests(unittest.TestCase):
     @staticmethod
     def _config(runner_module, path: Path):
         return runner_module.Paper8HConfig(output_dir=path, starting_capital=50.0, top_n=1, dynamic_universe=True)
@@ -90,11 +85,13 @@ class ResilientBootstrapRunnerIntegrationCurrentTests(unittest.TestCase):
             config = self._config(runner_module, Path(tmp) / "run")
             runtime = SimpleNamespace(ledger=Mock())
             lifecycle_factory = Mock(return_value=runtime)
+            stream_factory = Mock(return_value=object())
+            supervisor_factory = Mock(side_effect=lambda runtime: _FakeSupervisor(runtime))
             with patch("providers.binance_opportunity_source.urlopen", side_effect=fake_urlopen), patch(
                 "providers.binance_opportunity_source.time.sleep"
             ) as sleep, patch.object(runner_module, "ScalpingOpportunityPipeline", _FakePipeline), patch.object(
-                runner_module, "DynamicMarketStream", Mock(return_value=object())
-            ), patch.object(runner_module, "PaperRuntimeSupervisor", _FakeSupervisor), patch.object(
+                runner_module, "DynamicMarketStream", stream_factory
+            ), patch.object(runner_module, "PaperRuntimeSupervisor", supervisor_factory), patch.object(
                 runner_module, "PaperRealtimeLifecycle", lifecycle_factory
             ):
                 result = runner_module.Paper8HRunner.create(config)
@@ -106,6 +103,7 @@ class ResilientBootstrapRunnerIntegrationCurrentTests(unittest.TestCase):
             phases = [record["startup_phase"] for record in records if record["event_type"] == "startup_phase"]
             self.assertEqual(phases, ["market_discovery", "runtime_initialization", "running"])
             lifecycle_factory.assert_called_once()
+            stream_factory.assert_called_once_with((SYMBOL,))
 
     def test_persistent_history_failure_exhausts_retry_and_blocks_runtime(self):
         import tools.orion_paper_8h_runner as runner_module
