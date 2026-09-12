@@ -1,3 +1,22 @@
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Environment / secrets
+.env
+.env.*
+*.pem
+*.key
+
+# Data & logs
+*.db
+*.sqlite3
+*.log
+logs/
+tmp/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+orion-all-branches.bundle
