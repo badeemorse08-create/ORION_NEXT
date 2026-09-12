@@ -33,7 +33,6 @@ jobs:
             '.github/workflows/d2-actions-infra-probe.yml' \
             '.github/workflows/d2-exact-source-evidence.yml' \
             '.github/workflows/d2-explosive-mover-challenge.yml' \
-            '.github/workflows/d2-performance-profile.yml' \
             '.github/workflows/d2-real-historical-replay-7d.yml' \
             '.github/workflows/d2-report-schema-regression.yml' \
             '.github/workflows/d2-workflow-routing-diagnostic.yml' \
