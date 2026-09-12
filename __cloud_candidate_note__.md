@@ -1,0 +1,1 @@
+Cloud-integrated candidate validation marker. Do not merge directly to main.
