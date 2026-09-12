@@ -1,0 +1,4 @@
+from .opportunity_discovery import OpportunityDiscovery
+from .metric_exception_telemetry import install_metric_exception_telemetry
+
+install_metric_exception_telemetry(OpportunityDiscovery)
