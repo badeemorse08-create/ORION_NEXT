@@ -36,11 +36,23 @@ jobs:
             '.github/workflows/orion-canonical-ci.yml' \
             '.github/workflows/orion-verification.yml' \
             '.gitignore' \
+            'ORION-Project-Management/docs/D2_RELEASE_READINESS.md' \
+            'ORION-Project-Management/docs/D2_RELEASE_READINESS_2026-09-12.md' \
+            'ORION-Project-Management/docs/ORION_ARCHITECTURE.md' \
+            'ORION-Project-Management/docs/ORION_CONTINUITY_AND_RESUME_LEDGER.md' \
+            'ORION-Project-Management/docs/ORION_CONTROL_INDEX.md' \
+            'ORION-Project-Management/docs/ORION_DECISIONS.md' \
+            'ORION-Project-Management/docs/ORION_DESKTOP_PRODUCTION_FREEZE_AND_ANDROID_GATE.md' \
+            'ORION-Project-Management/docs/ORION_PROJECT_STATE.md' \
+            'ORION-Project-Management/docs/ORION_ROADMAP.md' \
+            'ORION-Project-Management/docs/ORION_SCALPING_OPPORTUNITY_OPTIMIZATION_SPEC.md' \
+            'binansScanner/docs/EXECUTION_PAPER_SAFETY_BOUNDARY.md' \
             'binansScanner/real_historical_replay.py' \
             'binansScanner/replay/performance_profile.py' \
             'binansScanner/replay/source.py' \
             'binansScanner/requirements.txt' \
             'binansScanner/tests/fixtures/historical_replay_fixture.py' \
+            'binansScanner/tests/test_d1_resilient_bootstrap_integration_current.py' \
             'tests/test_d2_explosive_mover_report_schema.py' \
             'tools/explosive_mover_challenge.py' | sort)"
           test "$actual" = "$expected"
