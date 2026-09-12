@@ -58,7 +58,16 @@ jobs:
             'binansScanner/tests/test_d1_resilient_bootstrap_integration_current.py' \
             'tests/test_d2_explosive_mover_report_schema.py' \
             'tools/explosive_mover_challenge.py' | sort)"
-          test "$actual" = "$expected"
+          if test "$actual" != "$expected"; then
+            echo "CHALLENGE_ISOLATION_MISMATCH"
+            echo "--- ACTUAL ---"
+            printf '%s\n' "$actual"
+            echo "--- EXPECTED ---"
+            printf '%s\n' "$expected"
+            echo "--- COMM DIFF ---"
+            comm -3 <(printf '%s\n' "$actual") <(printf '%s\n' "$expected") | cat -vet
+            exit 1
+          fi
           echo "CHALLENGE_ISOLATION PASS"
           echo "REPLAY_BASELINE_UNCHANGED PASS"
           echo "PRODUCTION_SEMANTICS_UNTOUCHED PASS"
