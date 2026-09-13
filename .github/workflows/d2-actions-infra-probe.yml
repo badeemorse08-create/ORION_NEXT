@@ -1,0 +1,45 @@
+name: D2 GitHub Actions Infrastructure Probe
+
+on:
+  push:
+    branches:
+      - d2/explosive-mover-challenge-20260905
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Probe start
+        run: |
+          echo "INFRA_PROBE_START"
+          echo "EVENT=${{ github.event_name }}"
+          echo "REF=${{ github.ref }}"
+          echo "SHA=${{ github.sha }}"
+          echo "RUN_ID=${{ github.run_id }}"
+          echo "RUN_ATTEMPT=${{ github.run_attempt }}"
+          uname -a
+          echo "INFRA_PROBE_STEP_EXECUTED"
+
+      - name: Probe filesystem
+        run: |
+          pwd
+          df -h
+          echo "INFRA_PROBE_FILESYSTEM_OK"
+
+      - name: Probe checkout
+        uses: actions/checkout@v4
+
+      - name: Probe repository
+        run: |
+          git rev-parse HEAD
+          test "$(git rev-parse HEAD)" = "${{ github.sha }}"
+          echo "INFRA_PROBE_CHECKOUT_OK"
+
+      - name: Probe complete
+        run: echo "INFRA_PROBE_PASS"
+
+# Fresh-run trigger: non-semantic comment only; confirms public-repo Actions scheduling.

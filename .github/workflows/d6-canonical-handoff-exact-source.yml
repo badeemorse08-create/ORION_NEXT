@@ -52,7 +52,7 @@ jobs:
 
       - name: Install verification dependencies
         working-directory: binansScanner
-        run: python -m pip install -r requirements.txt numpy pandas pandas-ta python-binance
+        run: python -m pip install -r requirements.txt
 
       - name: Run D6 handoff tests
         working-directory: binansScanner

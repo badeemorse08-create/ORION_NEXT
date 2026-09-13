@@ -14,7 +14,16 @@ SYMBOL = "AAAUSDT"
 
 
 def _history_payload():
-    return [[index, "1", "2", "0", str(100 + index), "10"] for index in range(32)]
+    base_timestamp_ms = 1_700_000_000_000
+    day_ms = 86_400_000
+    return [[
+        base_timestamp_ms + index * day_ms,
+        str(100 + index),
+        str(101 + index),
+        str(99 + index),
+        str(100 + index),
+        "10",
+    ] for index in range(32)]
 
 
 class _Response:

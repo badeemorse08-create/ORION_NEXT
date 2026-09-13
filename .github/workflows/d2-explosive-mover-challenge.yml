@@ -1,0 +1,244 @@
+name: D2 Explosive-Mover Challenge Set
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths-ignore:
+      - .github/workflows/d2-workflow-routing-diagnostic.yml
+  push:
+    branches: [d2/explosive-mover-challenge-20260905]
+  workflow_dispatch:
+
+jobs:
+  challenge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify challenge isolation
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$(git rev-parse d33da3e7af8f61e7091db0ff9971995a6619b01b)" = "d33da3e7af8f61e7091db0ff9971995a6619b01b"
+          git merge-base --is-ancestor d33da3e7af8f61e7091db0ff9971995a6619b01b HEAD
+          actual="$(git diff --name-only d33da3e7af8f61e7091db0ff9971995a6619b01b HEAD | sort)"
+          expected="$(printf '%s\n' \
+            '.github/workflows/d1-exact-source-evidence.yml' \
+            '.github/workflows/d2-actions-infra-probe.yml' \
+            '.github/workflows/d2-exact-source-evidence.yml' \
+            '.github/workflows/d2-explosive-mover-challenge.yml' \
+            '.github/workflows/d2-real-historical-replay-7d.yml' \
+            '.github/workflows/d2-report-schema-regression.yml' \
+            '.github/workflows/d2-workflow-routing-diagnostic.yml' \
+            '.github/workflows/d4-exact-source-evidence.yml' \
+            '.github/workflows/d6-canonical-handoff-exact-source.yml' \
+            '.github/workflows/orion-canonical-ci.yml' \
+            '.github/workflows/orion-verification.yml' \
+            '.gitignore' \
+            'ORION-Project-Management/docs/D2_RELEASE_READINESS.md' \
+            'ORION-Project-Management/docs/D2_RELEASE_READINESS_2026-09-12.md' \
+            'ORION-Project-Management/docs/ORION_ARCHITECTURE.md' \
+            'ORION-Project-Management/docs/ORION_CONTINUITY_AND_RESUME_LEDGER.md' \
+            'ORION-Project-Management/docs/ORION_CONTROL_INDEX.md' \
+            'ORION-Project-Management/docs/ORION_DECISIONS.md' \
+            'ORION-Project-Management/docs/ORION_DESKTOP_PRODUCTION_FREEZE_AND_ANDROID_GATE.md' \
+            'ORION-Project-Management/docs/ORION_PROJECT_STATE.md' \
+            'ORION-Project-Management/docs/ORION_ROADMAP.md' \
+            'ORION-Project-Management/docs/ORION_SCALPING_OPPORTUNITY_OPTIMIZATION_SPEC.md' \
+            'binansScanner/docs/EXECUTION_PAPER_SAFETY_BOUNDARY.md' \
+            'binansScanner/requirements.txt' \
+            'binansScanner/tests/fixtures/historical_replay_fixture.py' \
+            'binansScanner/tests/test_d1_resilient_bootstrap_integration_current.py' \
+            'tests/test_d2_explosive_mover_report_schema.py' \
+            'tools/explosive_mover_challenge.py' | sort)"
+          if test "$actual" != "$expected"; then
+            echo "CHALLENGE_ISOLATION_MISMATCH"
+            echo "--- ACTUAL ---"
+            printf '%s\n' "$actual"
+            echo "--- EXPECTED ---"
+            printf '%s\n' "$expected"
+            echo "--- COMM DIFF ---"
+            comm -3 <(printf '%s\n' "$actual") <(printf '%s\n' "$expected") | cat -vet
+            exit 1
+          fi
+          echo "CHALLENGE_ISOLATION PASS"
+          echo "REPLAY_BASELINE_UNCHANGED PASS"
+          echo "PRODUCTION_SEMANTICS_UNTOUCHED PASS"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        working-directory: binansScanner
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -r requirements.txt
+          python -m pip install numpy pandas pandas-ta python-binance
+          python -m pip check
+
+      - name: Compile
+        run: python -m compileall -q .
+
+      - name: Null-safety regression tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}/binansScanner:${{ github.workspace }}
+        run: |
+          python - <<'PY'
+          import tempfile
+          from pathlib import Path
+          from types import SimpleNamespace
+          from tools.explosive_mover_challenge import _event_time, build_evidence
+
+          first_order = None
+          first_fill = None
+          first_exit = None
+          assert _event_time(first_order) is None
+          assert _event_time(first_fill) is None
+          assert _event_time(first_exit) is None
+          assert _event_time({}) is None
+          assert _event_time([]) is None
+          assert _event_time({"timestamp": ""}) is None
+          assert _event_time({"timestamp": "not-a-datetime"}) is None
+
+          with tempfile.TemporaryDirectory() as tmp:
+              output = Path(tmp)
+              (output / "pipeline_observations.jsonl").write_text("", encoding="utf-8")
+              (output / "events.jsonl").write_text("", encoding="utf-8")
+              candles = {
+                  ("TESTUSDT", "5m"): ((1755475200000, "1", "1", "1", "1", "1", 1755475499999, "0", "0", "0", "0", "0"),)
+              }
+              dataset = SimpleNamespace(
+                  manifest=SimpleNamespace(symbols=("TESTUSDT",), integrity_sha256="fixture-sha256"),
+                  candles=candles,
+              )
+              validation = {
+                  "TESTUSDT": {
+                      "historical_existence": True,
+                      "historical_period_trade": True,
+                      "usdt_identity": True,
+                  }
+              }
+              detections = [{
+                  "symbol": "TESTUSDT",
+                  "window": "5m",
+                  "threshold_pct": 10,
+                  "base_timestamp": "2026-08-18T00:00:00+00:00",
+                  "threshold_cross_timestamp": "2026-08-18T00:05:00+00:00",
+                  "base_price": 1.0,
+                  "price_at_threshold": 1.1,
+                  "movement_pct": 10.0,
+              }]
+              result = build_evidence(output, dataset, validation, detections, {})
+              trace = result["causal_traces"][0]
+              assert trace["order_timestamp"] is None
+              assert trace["fill_timestamp"] is None
+              assert trace["exit_timestamp"] is None
+              assert trace["entry_latency_seconds"] is None
+              assert trace["entry_status"] == "NOT_ENTERED"
+          print("REGRESSION_FIRST_ORDER_NONE PASS")
+          print("REGRESSION_FIRST_FILL_NONE PASS")
+          print("REGRESSION_FIRST_EXIT_NONE PASS")
+          print("REGRESSION_EMPTY_ROW PASS")
+          print("REGRESSION_BUILD_EVIDENCE_NO_EVENTS PASS")
+          PY
+
+      - name: Run evidence-grade challenge set
+        env:
+          PYTHONPATH: ${{ github.workspace }}/binansScanner:${{ github.workspace }}
+        run: python tools/explosive_mover_challenge.py --output explosive_mover_challenge
+
+      - name: Validate machine-readable report
+        working-directory: explosive_mover_challenge
+        run: |
+          set -euo pipefail
+          echo "VALIDATION_CWD $(pwd)"
+          echo "VALIDATION_TOP_LEVEL"
+          find . -maxdepth 2 -type f -print | sort
+          echo "VALIDATION_REQUIRED_FILES"
+          for required in \
+            dataset/manifest.json \
+            detected_movers.json \
+            pipeline_observations.jsonl \
+            replay/campaign_report.json \
+            replay/events.jsonl \
+            challenge_report.json \
+            causal_traces.json \
+            threshold_window_statistics.json \
+            historical_validation.json \
+            challenge_manifest.json; do
+            if test -f "$required"; then
+              echo "REQUIRED_FILE PASS $required $(wc -c < "$required")"
+            else
+              echo "REQUIRED_FILE FAIL $required"
+              echo "--- parent listing ---"
+              ls -la "$(dirname "$required")" || true
+              echo "--- recursive listing ---"
+              find . -maxdepth 3 -print | sort
+              exit 1
+            fi
+          done
+          python -m json.tool challenge_report.json > /dev/null
+          echo "REPORT_JSON_PARSE PASS"
+          python -u - <<'PY'
+          import json
+          import sys
+          import traceback
+          from pathlib import Path
+
+          try:
+              report_path = Path('challenge_report.json')
+              print('REPORT_VALIDATE_PATH', report_path.resolve(), flush=True)
+              report = json.loads(report_path.read_text(encoding='utf-8'))
+              print('REPORT_VALIDATE_TYPE', type(report).__name__, flush=True)
+              print('REPORT_VALIDATE_KEYS', sorted(report.keys()), flush=True)
+              expected = {
+                  'universe_completeness': 'NOT_ESTABLISHED',
+                  'production_semantic_impact': 'NONE',
+                  'current_exchange_info_used': False,
+                  'future_universe_information_used': False,
+                  'campaign_B': 'BLOCKED',
+                  'broad_market_complete_universe_test': 'BLOCKED',
+              }
+              actual = {key: report.get(key) for key in expected}
+              print('REPORT_VALIDATION_EXPECTED', repr(expected), flush=True)
+              print('REPORT_VALIDATION_ACTUAL', repr(actual), flush=True)
+              failures = []
+              for key, value in expected.items():
+                  if key not in report:
+                      failures.append(f'missing key: {key}')
+                  elif report[key] != value:
+                      failures.append(f'{key}: expected={value!r}, actual={report[key]!r}')
+              for key in ('current_exchange_info_used', 'future_universe_information_used'):
+                  if key in report and type(report[key]) is not bool:
+                      failures.append(f'{key}: expected bool, actual_type={type(report[key]).__name__}')
+              if failures:
+                  print('REPORT_VALIDATION_FAIL', '; '.join(failures), file=sys.stderr, flush=True)
+                  raise SystemExit(1)
+              print('REPORT_VALIDATION PASS', flush=True)
+              print('DATASET_HASH', report['dataset_hash'], flush=True)
+              print('REPRESENTATIVE_CASE_KEYS', sorted(report['representative_cases']), flush=True)
+          except BaseException as exc:
+              print('REPORT_VALIDATION_EXCEPTION', type(exc).__name__, str(exc), file=sys.stderr, flush=True)
+              traceback.print_exc()
+              raise
+          PY
+
+      - name: Freeze artifact checksums
+        working-directory: explosive_mover_challenge
+        run: |
+          find . -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+          sha256sum challenge_report.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: d2-explosive-mover-challenge
+          path: explosive_mover_challenge/
+          if-no-files-found: error

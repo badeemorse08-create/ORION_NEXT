@@ -1,0 +1,118 @@
+name: D2 REAL Historical Replay Performance Profile
+on:
+  push:
+    branches: [d2/real-historical-replay-profiling-20260904]
+jobs:
+  profile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Verify profiling base and isolation
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.sha }}"
+          test "$(git rev-parse c6126e0b94781608147f321f737742f87f48bf2f)" = "c6126e0b94781608147f321f737742f87f48bf2f"
+          git merge-base --is-ancestor c6126e0b94781608147f321f737742f87f48bf2f HEAD
+          actual="$(git diff --name-only c6126e0b94781608147f321f737742f87f48bf2f HEAD | sort)"
+          expected="$(printf '%s\n' \
+            '.github/workflows/d2-performance-profile.yml' \
+            '.github/workflows/d2-real-historical-replay-7d.yml' \
+            'binansScanner/real_historical_replay.py' \
+            'binansScanner/replay/performance_profile.py' \
+            'binansScanner/replay/source.py' | sort)"
+          test "$actual" = "$expected"
+          echo "PROFILING_ISOLATION PASS"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        working-directory: binansScanner
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -r requirements.txt
+          python -m pip install numpy pandas pandas-ta python-binance
+          python -m pip check
+          python -c "import numpy, pandas, pandas_ta, binance; print('DEPENDENCIES_OK', numpy.__version__, pandas.__version__)"
+      - name: Compile
+        working-directory: binansScanner
+        run: python -m compileall -q .
+      - name: Acquire Campaign A historical dataset
+        working-directory: binansScanner
+        env:
+          PYTHONPATH: ${{ github.workspace }}/binansScanner:${{ github.workspace }}
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from real_historical_replay import acquire
+          root = Path('real_replay_profile/dataset')
+          acquire(root)
+          print(f'DATASET_ACQUIRED {root}')
+          PY
+      - name: Dataset identity and integrity gate
+        working-directory: binansScanner
+        env:
+          PYTHONPATH: ${{ github.workspace }}/binansScanner:${{ github.workspace }}
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          from real_historical_replay import SYMBOLS
+          from replay.dataset import HistoricalDataset
+          root = Path('real_replay_profile/dataset')
+          d = HistoricalDataset.from_directory(root)
+          m = json.loads((root / 'manifest.json').read_text())
+          assert tuple(sorted(m['symbols'])) == tuple(sorted(SYMBOLS))
+          assert m['completeness_status'] == 'PASS'
+          assert m['universe_policy'].startswith('fixed 20-symbol historical universe')
+          assert d.manifest.integrity_sha256 == m['integrity_sha256']
+          print('DATASET_INTEGRITY PASS')
+          print('DATASET_HASH', d.manifest.integrity_sha256)
+          print('HISTORICAL_UNIVERSE_SIZE', len(d.manifest.symbols))
+          print('NO_CURRENT_OR_FUTURE_UNIVERSE_DISCOVERY PASS')
+          PY
+      - name: 24H controlled canonical replay performance profile
+        working-directory: binansScanner
+        env:
+          PYTHONPATH: ${{ github.workspace }}/binansScanner:${{ github.workspace }}
+        run: python replay/performance_profile.py
+      - name: Verify profiling evidence
+        working-directory: binansScanner
+        run: |
+          test -s real_replay_profile/profile/performance_profile.json
+          test -s real_replay_profile/profile/heartbeats.jsonl
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('real_replay_profile/profile/performance_profile.json').read_text())
+          assert p['event_count'] > 0
+          assert p['decision_cycle_count'] == p['event_count']
+          assert p['throughput']['events_per_second'] > 0
+          assert p['throughput']['decision_cycles_per_second'] > 0
+          assert p['latency']['per_event']['count'] == p['event_count']
+          assert p['latency']['per_candle_close_decision_cycle']['count'] == p['decision_cycle_count']
+          assert p['dataset_identity']['underlying_dataset_contents_unchanged'] is True
+          assert p['safety']['production_strategy_modified'] is False
+          assert p['safety']['live_market_data_during_replay'] is False
+          assert p['safety']['synthetic_market_data'] is False
+          assert p['safety']['decision_cycles_skipped'] is False
+          assert p['safety']['fast_recall_bypassed'] is False
+          assert p['safety']['scoring_bypassed'] is False
+          print('PROFILE_EVIDENCE PASS')
+          print('ESTIMATED_7D_TOTAL_WALL_MINUTES', p['estimated_full_7d_completion']['total_wall_minutes'])
+          print('DOMINANT_COMPONENT', p['bottleneck_diagnosis']['dominant_measured_component'])
+          PY
+      - name: Clean tree
+        run: |
+          test -z "$(git diff --name-only)"
+          test -z "$(git diff --cached --name-only)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: d2-real-historical-replay-performance-profile
+          path: binansScanner/real_replay_profile/profile/
+          if-no-files-found: error
