@@ -14,6 +14,7 @@ from enum import Enum
 from typing import Any, Optional, Protocol
 
 from core.execution_plan_builder import ExecutionPlanBuilder
+from core.profile_intelligence import ProfileIntelligence, ProfileIntelligenceResult
 from engines.analysis_engine import AnalysisEngine
 from engines.decision_engine import DecisionEngine
 from engines.indicator_engine import IndicatorEngine
@@ -76,6 +77,7 @@ class OrchestratorResult:
     validation: Optional[Any] = None
     analysis: Optional[AnalysisResult] = None
     profile: Optional[ProfileResult] = None
+    profile_intelligence: Optional[ProfileIntelligenceResult] = None
     score: Optional[ScoreResult] = None
     decision: Optional[DecisionResult] = None
     execution_plan: Optional[ExecutionPlan] = None
@@ -112,6 +114,7 @@ class Orchestrator:
         validation_engine: ValidationEngine,
         config: OrchestratorConfig,
         execution_plan_builder: Optional[ExecutionPlanBuilder] = None,
+        profile_intelligence: Optional[ProfileIntelligence] = None,
     ) -> None:
         dependencies = {
             "provider": provider,
@@ -133,6 +136,7 @@ class Orchestrator:
         self._indicator_engine = indicator_engine
         self._analysis_engine = analysis_engine
         self._profile_engine = profile_engine
+        self._profile_intelligence = profile_intelligence or ProfileIntelligence()
         self._score_engine = score_engine
         self._decision_engine = decision_engine
         self._validation_engine = validation_engine
@@ -153,6 +157,7 @@ class Orchestrator:
         validation = None
         analysis = None
         profile = None
+        profile_intelligence = None
         score = None
         decision = None
         execution_plan = None
@@ -195,6 +200,13 @@ class Orchestrator:
                 raise PipelineError(
                     f"Profile intelligence blocked before Score/Decision: {blocked}"
                 )
+            if isinstance(profile, ProfileResult):
+                profile_intelligence = self._profile_intelligence.evaluate(profile)
+                if profile_intelligence.blocked:
+                    blocked = "; ".join(profile_intelligence.reasons) or "Profile intelligence is blocked."
+                    raise PipelineError(
+                        f"Profile intelligence validation blocked before Score/Decision: {blocked}"
+                    )
             completed += 1
 
             self._change_stage(PipelineStage.SCORE)
@@ -234,6 +246,7 @@ class Orchestrator:
                 validation=validation,
                 analysis=analysis,
                 profile=profile,
+                profile_intelligence=profile_intelligence,
                 score=score,
                 decision=decision,
                 execution_plan=execution_plan,
