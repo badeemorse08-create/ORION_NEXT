@@ -9,16 +9,22 @@ from unittest.mock import MagicMock
 import pandas as pd
 
 from core.orchestrator import Orchestrator, OrchestratorConfig, PipelineError, PipelineStage
-from core.profile_intelligence import ProfileIntelligenceResult, ProfileRecommendation
+from core.profile_intelligence import ProfileIntelligence, ProfileIntelligenceResult, ProfileRecommendation
 from enums import DataHealth, Timeframe
 from models.market import MarketDataset, MarketMetadata, TimeframeData
 from models.profile import (
+    EMAAlignment,
     MarketCharacteristics,
     ProfileResult,
     ProfileStatistics,
     TimeframeProfile,
+    TrendStrengthType,
     TrendType,
     MomentumState,
+    MarketPhaseType,
+    RiskLevel,
+    VolatilityLevelType,
+    VolumeStrength,
 )
 
 
@@ -26,28 +32,47 @@ class TestOrchestratorProfileIntelligence(TestCase):
     def _dataset(self) -> MarketDataset:
         now = datetime.now(timezone.utc)
         dataframe = pd.DataFrame(
-            {"open": [100.0, 100.5], "high": [101.0, 101.5], "low": [99.0, 100.0], "close": [100.5, 101.0], "volume": [10.0, 11.0]},
+            {
+                "open": [100.0, 100.5],
+                "high": [101.0, 101.5],
+                "low": [99.0, 100.0],
+                "close": [100.5, 101.0],
+                "volume": [10.0, 11.0],
+            },
             index=pd.DatetimeIndex([now, now], name="timestamp"),
         )
         return MarketDataset(
             metadata=MarketMetadata(
-                symbol="BTCUSDT", exchange="BINANCE", source="TEST", cache_version="1.0.0",
-                downloaded_at=now, last_updated_at=now,
+                symbol="BTCUSDT",
+                exchange="BINANCE",
+                source="TEST",
+                cache_version="1.0.0",
+                downloaded_at=now,
+                last_updated_at=now,
             ),
             timeframes={
                 Timeframe.M1: TimeframeData(
-                    timeframe=Timeframe.M1, dataframe=dataframe,
-                    data_health=DataHealth.ACCEPTABLE, candles_count=2,
-                    first_timestamp=now, last_timestamp=now,
+                    timeframe=Timeframe.M1,
+                    dataframe=dataframe,
+                    data_health=DataHealth.ACCEPTABLE,
+                    candles_count=2,
+                    first_timestamp=now,
+                    last_timestamp=now,
                 )
             },
         )
 
-    def _profile(self, *, tradeable: bool = True) -> ProfileResult:
+    def _profile(self, *, risk_level: str = RiskLevel.LOW.value) -> ProfileResult:
         now = datetime.now(timezone.utc)
         characteristics = MarketCharacteristics(
             trend=TrendType.BULLISH.value,
+            trend_strength=TrendStrengthType.STRONG.value,
+            volatility_level=VolatilityLevelType.NORMAL.value,
             momentum=MomentumState.BUY.value,
+            volume_strength=VolumeStrength.STRONG.value,
+            ema_alignment=EMAAlignment.BULLISH.value,
+            market_phase=MarketPhaseType.MARKUP.value,
+            risk_level=risk_level,
             confidence=80.0,
             trend_score=80.0,
             momentum_score=80.0,
@@ -75,10 +100,13 @@ class TestOrchestratorProfileIntelligence(TestCase):
                 oldest_candle=now,
             ),
             timeframes=(timeframe,),
-            is_tradeable=tradeable,
+            is_tradeable=True,
         )
 
-    def _orchestrator(self, profile_intelligence: MagicMock) -> tuple[Orchestrator, MagicMock, MagicMock, MagicMock, MagicMock, MagicMock, MagicMock]:
+    def _orchestrator(
+        self,
+        profile_intelligence: object,
+    ) -> tuple[Orchestrator, MagicMock, MagicMock, MagicMock, MagicMock, MagicMock, MarketDataset]:
         provider = MagicMock()
         storage = MagicMock()
         indicator = MagicMock()
@@ -87,7 +115,6 @@ class TestOrchestratorProfileIntelligence(TestCase):
         score = MagicMock()
         decision = MagicMock()
         validation = MagicMock()
-        execution_plan = MagicMock()
         dataset = self._dataset()
 
         provider.execute.return_value = dataset
@@ -115,7 +142,21 @@ class TestOrchestratorProfileIntelligence(TestCase):
         )
         return orchestrator, provider, storage, profile_engine, score, decision, dataset
 
-    def test_tradeable_canonical_profile_is_interpreted_before_scoring(self) -> None:
+    def test_real_profile_intelligence_runs_before_scoring(self) -> None:
+        orchestrator, _, _, profile_engine, score, _, dataset = self._orchestrator(ProfileIntelligence())
+        profile_engine.build_profile.return_value = self._profile()
+
+        result = orchestrator.run_pipeline("BTCUSDT", ["1m"])
+
+        self.assertIsInstance(result.profile, ProfileResult)
+        self.assertIsInstance(result.profile_intelligence, ProfileIntelligenceResult)
+        self.assertEqual(result.profile_intelligence.recommendation, ProfileRecommendation.BULLISH.value)
+        self.assertEqual(result.profile_intelligence.confidence, 80.0)
+        score.calculate.assert_called_once_with(result.analysis)
+        self.assertEqual(result.statistics.current_stage, PipelineStage.FINISHED)
+        self.assertIs(result.dataset, dataset)
+
+    def test_injected_profile_intelligence_is_called_before_scoring(self) -> None:
         intelligence = MagicMock()
         expected = ProfileIntelligenceResult(
             recommendation=ProfileRecommendation.BULLISH.value,
