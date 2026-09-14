@@ -51,10 +51,12 @@ jobs:
             'ORION-Project-Management/docs/ORION_PROJECT_STATE.md' \
             'ORION-Project-Management/docs/ORION_ROADMAP.md' \
             'ORION-Project-Management/docs/ORION_SCALPING_OPPORTUNITY_OPTIMIZATION_SPEC.md' \
+            'binansScanner/core/orchestrator.py' \
             'binansScanner/docs/EXECUTION_PAPER_SAFETY_BOUNDARY.md' \
             'binansScanner/requirements.txt' \
             'binansScanner/tests/fixtures/historical_replay_fixture.py' \
             'binansScanner/tests/test_d1_resilient_bootstrap_integration_current.py' \
+            'binansScanner/tests/test_orchestrator_profile_intelligence.py' \
             'tests/test_d2_explosive_mover_report_schema.py' \
             'tools/explosive_mover_challenge.py' | sort)"
           if test "$actual" != "$expected"; then
