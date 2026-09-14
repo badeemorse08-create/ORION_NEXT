@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from unittest import TestCase
 from unittest.mock import MagicMock
 
@@ -31,6 +31,7 @@ from models.profile import (
 class TestOrchestratorProfileIntelligence(TestCase):
     def _dataset(self) -> MarketDataset:
         now = datetime.now(timezone.utc)
+        later = now + timedelta(minutes=1)
         dataframe = pd.DataFrame(
             {
                 "open": [100.0, 100.5],
@@ -39,7 +40,7 @@ class TestOrchestratorProfileIntelligence(TestCase):
                 "close": [100.5, 101.0],
                 "volume": [10.0, 11.0],
             },
-            index=pd.DatetimeIndex([now, now], name="timestamp"),
+            index=pd.DatetimeIndex([now, later], name="timestamp"),
         )
         return MarketDataset(
             metadata=MarketMetadata(
@@ -48,7 +49,7 @@ class TestOrchestratorProfileIntelligence(TestCase):
                 source="TEST",
                 cache_version="1.0.0",
                 downloaded_at=now,
-                last_updated_at=now,
+                last_updated_at=later,
             ),
             timeframes={
                 Timeframe.M1: TimeframeData(
@@ -57,13 +58,14 @@ class TestOrchestratorProfileIntelligence(TestCase):
                     data_health=DataHealth.ACCEPTABLE,
                     candles_count=2,
                     first_timestamp=now,
-                    last_timestamp=now,
+                    last_timestamp=later,
                 )
             },
         )
 
     def _profile(self, *, risk_level: str = RiskLevel.LOW.value) -> ProfileResult:
         now = datetime.now(timezone.utc)
+        later = now + timedelta(minutes=1)
         characteristics = MarketCharacteristics(
             trend=TrendType.BULLISH.value,
             trend_strength=TrendStrengthType.STRONG.value,
@@ -85,7 +87,7 @@ class TestOrchestratorProfileIntelligence(TestCase):
             candles_count=2,
             missing_candles=0,
             first_timestamp=now,
-            last_timestamp=now,
+            last_timestamp=later,
         )
         return ProfileResult(
             symbol="BTCUSDT",
@@ -96,7 +98,7 @@ class TestOrchestratorProfileIntelligence(TestCase):
                 completion_ratio=1.0,
                 total_candles=2,
                 missing_candles=0,
-                newest_candle=now,
+                newest_candle=later,
                 oldest_candle=now,
             ),
             timeframes=(timeframe,),
@@ -176,7 +178,7 @@ class TestOrchestratorProfileIntelligence(TestCase):
         self.assertEqual(result.statistics.current_stage, PipelineStage.FINISHED)
         self.assertIs(result.dataset, dataset)
 
-    def test_blocked_profile_intelligence_stops_before_scoring(self) -> None:
+    def test_blocked_profile_intelligence_does_not_override_tradeable_profile(self) -> None:
         intelligence = MagicMock()
         blocked = ProfileIntelligenceResult(
             recommendation=ProfileRecommendation.BLOCKED.value,
@@ -188,10 +190,31 @@ class TestOrchestratorProfileIntelligence(TestCase):
         orchestrator, _, _, profile_engine, score, _, _ = self._orchestrator(intelligence)
         profile_engine.build_profile.return_value = self._profile()
 
-        with self.assertRaisesRegex(PipelineError, "invalid coverage"):
+        result = orchestrator.run_pipeline("BTCUSDT", ["1m"])
+
+        intelligence.evaluate.assert_called_once_with(result.profile)
+        self.assertIs(result.profile_intelligence, blocked)
+        score.calculate.assert_called_once_with(result.analysis)
+        self.assertEqual(result.statistics.current_stage, PipelineStage.FINISHED)
+
+    def test_non_tradeable_profile_still_stops_before_intelligence_and_scoring(self) -> None:
+        intelligence = MagicMock()
+        orchestrator, _, _, profile_engine, score, _, _ = self._orchestrator(intelligence)
+        profile = self._profile()
+        profile_engine.build_profile.return_value = ProfileResult(
+            symbol=profile.symbol,
+            market=profile.market,
+            statistics=profile.statistics,
+            timeframes=profile.timeframes,
+            warnings=profile.warnings,
+            blocks=("PROFILE_BLOCK",),
+            is_tradeable=False,
+        )
+
+        with self.assertRaisesRegex(PipelineError, "PROFILE_BLOCK"):
             orchestrator.run_pipeline("BTCUSDT", ["1m"])
 
-        intelligence.evaluate.assert_called_once()
+        intelligence.evaluate.assert_not_called()
         score.calculate.assert_not_called()
         self.assertEqual(orchestrator.statistics().current_stage, PipelineStage.PROFILE)
 
