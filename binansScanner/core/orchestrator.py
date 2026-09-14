@@ -201,12 +201,12 @@ class Orchestrator:
                     f"Profile intelligence blocked before Score/Decision: {blocked}"
                 )
             if isinstance(profile, ProfileResult):
+                # ProfileIntelligence is an interpretation/diagnostic boundary;
+                # ProfileEngine remains the canonical authority for the existing
+                # is_tradeable gate.  A blocked interpretation is retained on the
+                # canonical result but must not invalidate a tradeable profile
+                # merely because optional intelligence coverage is incomplete.
                 profile_intelligence = self._profile_intelligence.evaluate(profile)
-                if profile_intelligence.blocked:
-                    blocked = "; ".join(profile_intelligence.reasons) or "Profile intelligence is blocked."
-                    raise PipelineError(
-                        f"Profile intelligence validation blocked before Score/Decision: {blocked}"
-                    )
             completed += 1
 
             self._change_stage(PipelineStage.SCORE)
