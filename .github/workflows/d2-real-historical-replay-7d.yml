@@ -46,6 +46,7 @@ jobs:
             'ORION-Project-Management/docs/ORION_PROJECT_STATE.md' \
             'ORION-Project-Management/docs/ORION_ROADMAP.md' \
             'ORION-Project-Management/docs/ORION_SCALPING_OPPORTUNITY_OPTIMIZATION_SPEC.md' \
+            'binansScanner/core/orchestrator.py' \
             'binansScanner/docs/EXECUTION_PAPER_SAFETY_BOUNDARY.md' \
             'binansScanner/real_historical_replay.py' \
             'binansScanner/replay/performance_profile.py' \
@@ -53,6 +54,7 @@ jobs:
             'binansScanner/requirements.txt' \
             'binansScanner/tests/fixtures/historical_replay_fixture.py' \
             'binansScanner/tests/test_d1_resilient_bootstrap_integration_current.py' \
+            'binansScanner/tests/test_orchestrator_profile_intelligence.py' \
             'tests/test_d2_explosive_mover_report_schema.py' \
             'tools/explosive_mover_challenge.py' | sort)"
           test "$actual" = "$expected"
@@ -148,9 +150,9 @@ jobs:
 
           assert len(universe_candidates) == len(SYMBOLS)
           assert set(c.symbol for c in universe_candidates) == set(SYMBOLS)
-          assert len(eligible_set.candidates) > active_top_n, 'eligible discovery candidates must exceed active_top_n'
+          assert len(eligible_set.candidates) > active_top_n
           assert union_size == len(recall.candidates)
-          assert len(recall.candidates) > active_top_n, 'fast recall must produce a candidate pool above active_top_n'
+          assert len(recall.candidates) > active_top_n
           assert len(recall.candidates) <= broad_pool_top_n
           print('FAST_RECALL_BREADTH_REGRESSION PASS')
           PY
