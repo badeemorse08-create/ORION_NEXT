@@ -114,7 +114,7 @@ jobs:
           expected="${{ steps.source.outputs.expected_sha }}"
           actual="$(git rev-parse HEAD)"
           {
-            printf 'repository=badeemorse-gif/ORION_NEXT\n'
+            printf 'repository=badeemorse08-create/ORION_NEXT\n'
             printf 'workflow=ORION verification\n'
             printf 'run_id=%s\n' "$GITHUB_RUN_ID"
             printf 'trigger=%s\n' "$GITHUB_EVENT_NAME"
