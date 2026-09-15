@@ -92,11 +92,7 @@ class DependencyContainer:
         self._pipeline_instance: Optional[Pipeline] = None
 
     def _create_binance_provider(self) -> BinanceProvider:
-        return BinanceProvider(
-            api_key=self._config.binance_api_key,
-            api_secret=self._config.binance_api_secret,
-            testnet=self._config.binance_testnet,
-        )
+        return BinanceProvider(api_key=self._config.binance_api_key, api_secret=self._config.binance_api_secret, testnet=self._config.binance_testnet)
 
     def _create_market_data_provider(self) -> MarketDataProvider:
         return MarketDataProvider(source=self.build_binance_provider(), logger=self._logger_instance)
@@ -105,11 +101,7 @@ class DependencyContainer:
         return SQLiteMarketStorage(database_path=self._config.database_path, logger=self._logger_instance)
 
     def _create_market_repository(self) -> MarketRepository:
-        return MarketRepository(
-            market_provider=self.build_market_data_provider(),
-            storage=self.build_market_storage(),
-            logger=self._logger_instance,
-        )
+        return MarketRepository(market_provider=self.build_market_data_provider(), storage=self.build_market_storage(), logger=self._logger_instance)
 
     def _create_market_service(self) -> MarketService:
         return MarketService(repository=self.build_market_repository(), logger=self._logger_instance)
@@ -144,17 +136,10 @@ class DependencyContainer:
         return SchedulerService(logger=self._logger_instance)
 
     def _create_api_service(self) -> ApiService:
-        return ApiService(
-            scheduler=self.build_scheduler_service(),
-            pipeline=self.build_pipeline(),
-            logger=self._logger_instance,
-        )
+        return ApiService(scheduler=self.build_scheduler_service(), pipeline=self.build_pipeline(), logger=self._logger_instance)
 
     def _create_api_router(self) -> ApiRouter:
-        return ApiRouter(
-            service=self.build_api_service(),
-            logger=self._logger_instance,
-        )
+        return ApiRouter(service=self.build_api_service(), logger=self._logger_instance)
 
     def build_binance_provider(self) -> BinanceProvider:
         if self._binance_provider_instance is None:
@@ -235,10 +220,7 @@ class DependencyContainer:
         if self._execution_engine_instance is None:
             if self._execution_adapter_instance is None:
                 self._execution_adapter_instance = self._create_execution_adapter()
-            self._execution_engine_instance = ExecutionEngine(
-                adapter=self._execution_adapter_instance,
-                logger=self._logger_instance,
-            )
+            self._execution_engine_instance = ExecutionEngine(adapter=self._execution_adapter_instance, logger=self._logger_instance)
         return self._execution_engine_instance
 
     def build_scheduler_service(self) -> SchedulerService:
@@ -259,33 +241,17 @@ class DependencyContainer:
     def build_orchestrator(self) -> Orchestrator:
         if self._orchestrator_instance is None:
             config = self._config.orchestrator_config or OrchestratorConfig()
-            self._orchestrator_instance = Orchestrator(
-                provider=self.build_market_data_provider(),
-                storage=self.build_market_storage(),
-                indicator_engine=self.build_indicator_engine(),
-                analysis_engine=self.build_analysis_engine(),
-                profile_engine=self.build_profile_engine(),
-                score_engine=self.build_score_engine(),
-                decision_engine=self.build_decision_engine(),
-                validation_engine=self.build_validation_engine(),
-                config=config,
-            )
+            self._orchestrator_instance = Orchestrator(provider=self.build_market_data_provider(), storage=self.build_market_storage(), indicator_engine=self.build_indicator_engine(), analysis_engine=self.build_analysis_engine(), profile_engine=self.build_profile_engine(), score_engine=self.build_score_engine(), decision_engine=self.build_decision_engine(), validation_engine=self.build_validation_engine(), config=config)
         return self._orchestrator_instance
 
     def build_pipeline(self) -> Pipeline:
         if self._pipeline_instance is None:
-            self._pipeline_instance = Pipeline(
-                orchestrator=self.build_orchestrator(),
-                execution_engine=self.build_execution_engine(),
-                report_engine=self.build_report_engine(),
-                logger=self._logger_instance,
-            )
+            self._pipeline_instance = Pipeline(orchestrator=self.build_orchestrator(), execution_engine=self.build_execution_engine(), report_engine=self.build_report_engine(), logger=self._logger_instance)
         return self._pipeline_instance
 
     def reset(self) -> None:
         if self._scheduler_service_instance is not None:
             self._scheduler_service_instance.stop()
-
         self._binance_provider_instance = None
         self._market_data_provider_instance = None
         self._market_storage_instance = None
