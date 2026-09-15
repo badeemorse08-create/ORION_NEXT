@@ -1,1 +1,1 @@
-"""placeholder"""
+"""ORION dependency composition root."""
